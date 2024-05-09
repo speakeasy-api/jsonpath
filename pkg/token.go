@@ -38,36 +38,56 @@ const (
 	DOT
 	PIPE
 	QUESTION
+	EQUALITY
+	INEQUALITY
+	GREATER_THAN
+	GREATER_THAN_OR_EQUAL
+	LESS_THAN
+	LESS_THAN_OR_EQUAL
+	AND
+	OR
+	NOT
+	MATCHES_REGEX
 )
 
 var tokens = [...]string{
-	ILLEGAL:       "ILLEGAL",
-	EOF:           "EOF",
-	LITERAL:       "LITERAL",
-	NUMBER:        "NUMBER",
-	STRING:        "STRING",
-	BOOLEAN:       "BOOLEAN",
-	NULL:          "NULL",
-	ROOT:          "$",
-	CURRENT:       "@",
-	WILDCARD:      "*",
-	RECURSIVE:     "..",
-	UNION:         ",",
-	CHILD:         ".",
-	SUBSCRIPT:     "[]",
-	SLICE:         ":",
-	FILTER:        "?",
-	PAREN_LEFT:    "(",
-	PAREN_RIGHT:   ")",
-	BRACKET_LEFT:  "[",
-	BRACKET_RIGHT: "]",
-	BRACE_LEFT:    "{",
-	BRACE_RIGHT:   "}",
-	COLON:         ":",
-	COMMA:         ",",
-	DOT:           ".",
-	PIPE:          "|",
-	QUESTION:      "?",
+	ILLEGAL:               "ILLEGAL",
+	EOF:                   "EOF",
+	LITERAL:               "LITERAL",
+	NUMBER:                "NUMBER",
+	STRING:                "STRING",
+	BOOLEAN:               "BOOLEAN",
+	NULL:                  "NULL",
+	ROOT:                  "$",
+	CURRENT:               "@",
+	WILDCARD:              "*",
+	RECURSIVE:             "..",
+	UNION:                 ",",
+	CHILD:                 ".",
+	SUBSCRIPT:             "[]",
+	SLICE:                 ":",
+	FILTER:                "?",
+	PAREN_LEFT:            "(",
+	PAREN_RIGHT:           ")",
+	BRACKET_LEFT:          "[",
+	BRACKET_RIGHT:         "]",
+	BRACE_LEFT:            "{",
+	BRACE_RIGHT:           "}",
+	COLON:                 ":",
+	COMMA:                 ",",
+	DOT:                   ".",
+	PIPE:                  "|",
+	QUESTION:              "?",
+	EQUALITY:              "==",
+	INEQUALITY:            "!=",
+	GREATER_THAN:          ">",
+	GREATER_THAN_OR_EQUAL: ">=",
+	LESS_THAN:             "<",
+	LESS_THAN_OR_EQUAL:    "<=",
+	AND:                   "&&",
+	OR:                    "||",
+	NOT:                   "!",
+	MATCHES_REGEX:         "=~",
 }
 
 // String returns the string representation of the token.
@@ -178,9 +198,46 @@ func (t *Tokenizer) Tokenize() []TokenInfo {
 			t.addToken(BRACE_RIGHT, "")
 		case ch == '|':
 			t.addToken(PIPE, "")
+		case ch == '=':
+			if t.peek() == '=' {
+				t.addToken(EQUALITY, "")
+			} else if t.peek() == '~' {
+				t.addToken(MATCHES_REGEX, "")
+			} else {
+				t.addToken(ILLEGAL, string(ch))
+			}
+		case ch == '!':
+			if t.peek() == '=' {
+				t.addToken(INEQUALITY, "")
+			} else {
+				t.addToken(NOT, "")
+			}
+		case ch == '>':
+			if t.peek() == '=' {
+				t.addToken(GREATER_THAN_OR_EQUAL, "")
+			} else {
+				t.addToken(GREATER_THAN, "")
+			}
+		case ch == '<':
+			if t.peek() == '=' {
+				t.addToken(LESS_THAN_OR_EQUAL, "")
+			} else {
+				t.addToken(LESS_THAN, "")
+			}
+		case ch == '&':
+			if t.peek() == '&' {
+				t.addToken(AND, "")
+			} else {
+				t.addToken(ILLEGAL, string(ch))
+			}
+		case ch == '|':
+			if t.peek() == '|' {
+				t.addToken(OR, "")
+			} else {
+				t.addToken(ILLEGAL, string(ch))
+			}
 		case ch == '"' || ch == '\'':
 			t.scanString(rune(ch))
-
 		case isDigit(ch):
 			t.scanNumber()
 		case isLetter(ch):
@@ -264,7 +321,6 @@ func (t *Tokenizer) scanLiteral() {
 	}
 	t.pos = len(t.input) - 1
 	t.column = len(t.input) - 1
-
 }
 
 func (t *Tokenizer) skipWhitespace() {

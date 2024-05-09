@@ -99,7 +99,7 @@ func TestTokenizer(t *testing.T) {
 				{Token: CURRENT, Line: 1, Column: 15, Literal: ""},
 				{Token: CHILD, Line: 1, Column: 16, Literal: ""},
 				{Token: LITERAL, Line: 1, Column: 17, Literal: "price"},
-				{Token: LITERAL, Line: 1, Column: 23, Literal: "<"},
+				{Token: LESS_THAN, Line: 1, Column: 23, Literal: ""},
 				{Token: NUMBER, Line: 1, Column: 25, Literal: "10"},
 				{Token: PAREN_RIGHT, Line: 1, Column: 27, Literal: ""},
 				{Token: BRACKET_RIGHT, Line: 1, Column: 28, Literal: ""},
