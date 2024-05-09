@@ -14,6 +14,7 @@ const (
 	ILLEGAL Token = iota
 	EOF
 	LITERAL
+	REGEX_LITERAL
 	NUMBER
 	STRING
 	BOOLEAN
@@ -26,7 +27,8 @@ const (
 	CHILD
 	SUBSCRIPT
 	SLICE
-	FILTER
+	FILTER_LEFT
+	FILTER_RIGHT
 	PAREN_LEFT
 	PAREN_RIGHT
 	BRACKET_LEFT
@@ -38,56 +40,59 @@ const (
 	DOT
 	PIPE
 	QUESTION
-	EQUALITY
-	INEQUALITY
-	GREATER_THAN
-	GREATER_THAN_OR_EQUAL
-	LESS_THAN
-	LESS_THAN_OR_EQUAL
+	TILDE
 	AND
 	OR
 	NOT
-	MATCHES_REGEX
+	EQ
+	NE
+	GT
+	GE
+	LT
+	LE
+	MATCHES
 )
 
 var tokens = [...]string{
-	ILLEGAL:               "ILLEGAL",
-	EOF:                   "EOF",
-	LITERAL:               "LITERAL",
-	NUMBER:                "NUMBER",
-	STRING:                "STRING",
-	BOOLEAN:               "BOOLEAN",
-	NULL:                  "NULL",
-	ROOT:                  "$",
-	CURRENT:               "@",
-	WILDCARD:              "*",
-	RECURSIVE:             "..",
-	UNION:                 ",",
-	CHILD:                 ".",
-	SUBSCRIPT:             "[]",
-	SLICE:                 ":",
-	FILTER:                "?",
-	PAREN_LEFT:            "(",
-	PAREN_RIGHT:           ")",
-	BRACKET_LEFT:          "[",
-	BRACKET_RIGHT:         "]",
-	BRACE_LEFT:            "{",
-	BRACE_RIGHT:           "}",
-	COLON:                 ":",
-	COMMA:                 ",",
-	DOT:                   ".",
-	PIPE:                  "|",
-	QUESTION:              "?",
-	EQUALITY:              "==",
-	INEQUALITY:            "!=",
-	GREATER_THAN:          ">",
-	GREATER_THAN_OR_EQUAL: ">=",
-	LESS_THAN:             "<",
-	LESS_THAN_OR_EQUAL:    "<=",
-	AND:                   "&&",
-	OR:                    "||",
-	NOT:                   "!",
-	MATCHES_REGEX:         "=~",
+	ILLEGAL:       "ILLEGAL",
+	EOF:           "EOF",
+	REGEX_LITERAL: "REGEX_LITERAL",
+	LITERAL:       "LITERAL",
+	NUMBER:        "NUMBER",
+	STRING:        "STRING",
+	BOOLEAN:       "BOOLEAN",
+	NULL:          "NULL",
+	ROOT:          "$",
+	CURRENT:       "@",
+	WILDCARD:      "*",
+	RECURSIVE:     "..",
+	UNION:         ",",
+	CHILD:         ".",
+	SUBSCRIPT:     "[]",
+	SLICE:         ":",
+	FILTER_LEFT:   "?",
+	PAREN_LEFT:    "(",
+	PAREN_RIGHT:   ")",
+	BRACKET_LEFT:  "[",
+	BRACKET_RIGHT: "]",
+	BRACE_LEFT:    "{",
+	BRACE_RIGHT:   "}",
+	COLON:         ":",
+	COMMA:         ",",
+	DOT:           ".",
+	PIPE:          "|",
+	QUESTION:      "?",
+	TILDE:         "~",
+	AND:           "&&",
+	OR:            "||",
+	NOT:           "!",
+	EQ:            "==",
+	NE:            "!=",
+	GT:            ">",
+	GE:            ">=",
+	LT:            "<",
+	LE:            "<=",
+	MATCHES:       "=~",
 }
 
 // String returns the string representation of the token.
@@ -127,7 +132,45 @@ func (t Tokenizer) ErrorString(target TokenInfo, msg string) string {
 
 	// Write the caret symbol pointing to the target token
 	errorBuilder.WriteString(spaces)
-	errorBuilder.WriteString("^\n")
+	dots := strings.Repeat(".", target.Len-1)
+	errorBuilder.WriteString("^" + dots + "\n")
+
+	return errorBuilder.String()
+}
+func (t Tokenizer) ErrorTokenString(target TokenInfo, msg string) string {
+	var errorBuilder strings.Builder
+
+	// Write the error message with line and column information
+	errorBuilder.WriteString(fmt.Sprintf("Error at line %d, column %d: %s\n", target.Line, target.Column, msg))
+
+	// Find the start and end positions of the line containing the target token
+	lineStart := 0
+	lineEnd := len(t.input)
+	for i := target.Line - 1; i > 0; i-- {
+		if pos := strings.LastIndexByte(t.input[:lineStart], '\n'); pos != -1 {
+			lineStart = pos + 1
+			break
+		}
+	}
+	if pos := strings.IndexByte(t.input[lineStart:], '\n'); pos != -1 {
+		lineEnd = lineStart + pos
+	}
+
+	// Extract the line containing the target token
+	line := t.input[lineStart:lineEnd]
+
+	// Calculate the number of spaces before the target token
+	for _, token := range t.tokens {
+		errorBuilder.WriteString(line)
+		errorBuilder.WriteString("\n")
+		spaces := strings.Repeat(" ", token.Column)
+		dots := ""
+		if token.Len > 0 {
+			dots = strings.Repeat(".", token.Len-1)
+		}
+		errorBuilder.WriteString(spaces)
+		errorBuilder.WriteString(fmt.Sprintf("^%s %s\n", dots, tokens[token.Token]))
+	}
 
 	return errorBuilder.String()
 }
@@ -138,6 +181,7 @@ type TokenInfo struct {
 	Line    int
 	Column  int
 	Literal string
+	Len     int
 }
 
 // Tokenizer represents a JSONPath tokenizer.
@@ -147,6 +191,7 @@ type Tokenizer struct {
 	line   int
 	column int
 	tokens []TokenInfo
+	stack  []Token
 }
 
 // NewTokenizer creates a new JSONPath tokenizer for the given input string.
@@ -154,6 +199,7 @@ func NewTokenizer(input string) *Tokenizer {
 	return &Tokenizer{
 		input: input,
 		line:  1,
+		stack: make([]Token, 0),
 	}
 }
 
@@ -167,74 +213,136 @@ func (t *Tokenizer) Tokenize() []TokenInfo {
 
 		switch ch := t.input[t.pos]; {
 		case ch == '$':
-			t.addToken(ROOT, "")
+			t.addToken(ROOT, 1, "")
 		case ch == '@':
-			t.addToken(CURRENT, "")
+			t.addToken(CURRENT, 1, "")
 		case ch == '*':
-			t.addToken(WILDCARD, "")
+			t.addToken(WILDCARD, 1, "")
 		case ch == '.':
 			if t.peek() == '.' {
-				t.addToken(RECURSIVE, "")
+				t.addToken(RECURSIVE, 2, "")
 			} else {
-				t.addToken(CHILD, "")
+				t.addToken(CHILD, 1, "")
 			}
 		case ch == ',':
-			t.addToken(UNION, "")
+			t.addToken(UNION, 1, "")
 		case ch == ':':
-			t.addToken(SLICE, "")
+			t.addToken(SLICE, 1, "")
 		case ch == '?':
-			t.addToken(FILTER, "")
+			t.addToken(FILTER_LEFT, 1, "")
 		case ch == '(':
-			t.addToken(PAREN_LEFT, "")
+			t.addToken(PAREN_LEFT, 1, "")
+			t.stack = append(t.stack, PAREN_LEFT)
 		case ch == ')':
-			t.addToken(PAREN_RIGHT, "")
+			t.addToken(PAREN_RIGHT, 1, "")
+			if len(t.stack) > 0 && t.stack[len(t.stack)-1] == PAREN_LEFT {
+				t.stack = t.stack[:len(t.stack)-1]
+			} else {
+				t.addToken(ILLEGAL, 1, "unmatched closing parenthesis")
+			}
 		case ch == '[':
-			t.addToken(BRACKET_LEFT, "")
+			if t.peek() == '?' {
+				t.addToken(FILTER_LEFT, 2, "")
+				t.stack = append(t.stack, FILTER_LEFT)
+				t.pos++
+				t.column++
+			} else {
+				t.addToken(BRACKET_LEFT, 1, "")
+				t.stack = append(t.stack, BRACKET_LEFT)
+			}
 		case ch == ']':
-			t.addToken(BRACKET_RIGHT, "")
-		case ch == '{':
-			t.addToken(BRACE_LEFT, "")
-		case ch == '}':
-			t.addToken(BRACE_RIGHT, "")
-		case ch == '|':
-			t.addToken(PIPE, "")
-		case ch == '=':
-			if t.peek() == '=' {
-				t.addToken(EQUALITY, "")
-			} else if t.peek() == '~' {
-				t.addToken(MATCHES_REGEX, "")
+			if len(t.stack) > 0 && t.stack[len(t.stack)-1] == FILTER_LEFT {
+				t.addToken(FILTER_RIGHT, 1, "")
+				t.stack = t.stack[:len(t.stack)-1]
 			} else {
-				t.addToken(ILLEGAL, string(ch))
+				if len(t.stack) > 0 && t.stack[len(t.stack)-1] == BRACKET_LEFT {
+					t.addToken(BRACKET_RIGHT, 1, "")
+					t.stack = t.stack[:len(t.stack)-1]
+				} else {
+					t.addToken(ILLEGAL, 1, "unmatched closing bracket")
+				}
 			}
-		case ch == '!':
-			if t.peek() == '=' {
-				t.addToken(INEQUALITY, "")
-			} else {
-				t.addToken(NOT, "")
+		case ch == '/':
+			regexLen := 1
+			startPos := t.pos
+			t.pos += 1
+			escape := false
+			for {
+				regexLen++
+				if t.pos >= len(t.input) {
+					t.pos = startPos
+					t.addToken(ILLEGAL, regexLen, "unmatched regular expression")
+					break
+				}
+				if !escape && t.input[t.pos] == '/' {
+					litStart := startPos + 1
+					litEnd := t.pos
+					t.pos = startPos
+					t.addToken(REGEX_LITERAL, regexLen, t.input[litStart:litEnd])
+					t.pos = litEnd
+					t.column = litEnd
+					break
+				}
+				if t.input[t.pos] == '\\' {
+					escape = !escape
+				} else {
+					escape = false
+				}
+				t.pos++
 			}
-		case ch == '>':
-			if t.peek() == '=' {
-				t.addToken(GREATER_THAN_OR_EQUAL, "")
-			} else {
-				t.addToken(GREATER_THAN, "")
-			}
-		case ch == '<':
-			if t.peek() == '=' {
-				t.addToken(LESS_THAN_OR_EQUAL, "")
-			} else {
-				t.addToken(LESS_THAN, "")
-			}
+		case ch == '~':
+			t.addToken(TILDE, 1, "")
 		case ch == '&':
 			if t.peek() == '&' {
-				t.addToken(AND, "")
+				t.addToken(AND, 2, "")
+				t.pos++
+				t.column++
 			} else {
-				t.addToken(ILLEGAL, string(ch))
+				t.addToken(ILLEGAL, 1, "invalid token")
 			}
 		case ch == '|':
 			if t.peek() == '|' {
-				t.addToken(OR, "")
+				t.addToken(OR, 2, "")
+				t.pos++
+				t.column++
 			} else {
-				t.addToken(ILLEGAL, string(ch))
+				t.addToken(ILLEGAL, 1, "invalid token")
+			}
+		case ch == '!':
+			if t.peek() == '=' {
+				t.addToken(NE, 2, "")
+				t.pos++
+				t.column++
+			} else {
+				t.addToken(NOT, 1, "")
+			}
+		case ch == '=':
+			if t.peek() == '=' {
+				t.addToken(EQ, 2, "")
+				t.pos++
+				t.column++
+			} else if t.peek() == '~' {
+				t.addToken(MATCHES, 2, "")
+				t.pos++
+				t.column++
+			} else {
+				t.addToken(ILLEGAL, 1, "invalid token")
+			}
+		case ch == '>':
+			if t.peek() == '=' {
+				t.addToken(GE, 2, "")
+				t.pos++
+				t.column++
+			} else {
+				t.addToken(GT, 1, "")
+			}
+		case ch == '<':
+			if t.peek() == '=' {
+				t.addToken(LE, 2, "")
+				t.pos++
+				t.column++
+			} else {
+				t.addToken(LT, 1, "")
 			}
 		case ch == '"' || ch == '\'':
 			t.scanString(rune(ch))
@@ -243,21 +351,22 @@ func (t *Tokenizer) Tokenize() []TokenInfo {
 		case isLetter(ch):
 			t.scanLiteral()
 		default:
-			t.addToken(ILLEGAL, string(ch))
+			t.addToken(ILLEGAL, 1, string(ch))
 		}
 		t.pos++
 		t.column++
 	}
 
-	t.addToken(EOF, "")
+	t.addToken(EOF, 0, "")
 	return t.tokens
 }
 
-func (t *Tokenizer) addToken(token Token, literal string) {
+func (t *Tokenizer) addToken(token Token, len int, literal string) {
 	t.tokens = append(t.tokens, TokenInfo{
 		Token:   token,
 		Line:    t.line,
 		Column:  t.column,
+		Len:     len,
 		Literal: literal,
 	})
 }
@@ -266,13 +375,13 @@ func (t *Tokenizer) scanString(quote rune) {
 	start := t.pos + 1
 	for i := start; i < len(t.input); i++ {
 		if t.input[i] == byte(quote) {
-			t.addToken(STRING, t.input[start:i])
+			t.addToken(STRING, len(t.input[start:i]), t.input[start:i])
 			t.pos = i
 			t.column += i - start + 1
 			return
 		}
 	}
-	t.addToken(ILLEGAL, t.input[start:])
+	t.addToken(ILLEGAL, len(t.input[start:]), t.input[start:])
 	t.pos = len(t.input) - 1
 	t.column = len(t.input) - 1
 }
@@ -281,13 +390,13 @@ func (t *Tokenizer) scanNumber() {
 	start := t.pos
 	for i := start; i < len(t.input); i++ {
 		if !isDigit(t.input[i]) {
-			t.addToken(NUMBER, t.input[start:i])
+			t.addToken(NUMBER, len(t.input[start:i]), t.input[start:i])
 			t.pos = i - 1
 			t.column += i - start - 1
 			return
 		}
 	}
-	t.addToken(NUMBER, t.input[start:])
+	t.addToken(NUMBER, len(t.input[start:]), t.input[start:])
 	t.pos = len(t.input) - 1
 	t.column = len(t.input) - 1
 }
@@ -299,11 +408,11 @@ func (t *Tokenizer) scanLiteral() {
 			literal := t.input[start:i]
 			switch literal {
 			case "true", "false":
-				t.addToken(BOOLEAN, literal)
+				t.addToken(BOOLEAN, len(literal), literal)
 			case "null":
-				t.addToken(NULL, literal)
+				t.addToken(NULL, len(literal), literal)
 			default:
-				t.addToken(LITERAL, literal)
+				t.addToken(LITERAL, len(literal), literal)
 			}
 			t.pos = i - 1
 			t.column += i - start - 1
@@ -313,11 +422,11 @@ func (t *Tokenizer) scanLiteral() {
 	literal := t.input[start:]
 	switch literal {
 	case "true", "false":
-		t.addToken(BOOLEAN, literal)
+		t.addToken(BOOLEAN, len(literal), literal)
 	case "null":
-		t.addToken(NULL, literal)
+		t.addToken(NULL, len(literal), literal)
 	default:
-		t.addToken(LITERAL, literal)
+		t.addToken(LITERAL, len(literal), literal)
 	}
 	t.pos = len(t.input) - 1
 	t.column = len(t.input) - 1
