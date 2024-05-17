@@ -13,14 +13,11 @@ module.exports = {
         'prettier/prettier': 'error',
         'react/jsx-uses-react': 'off',
         'react/react-in-jsx-scope': 'off',
-        'no-unused-vars': [
-            'error',
-            {
-                'args': 'all',
-                'argsIgnorePattern': '^_',
-                'varsIgnorePattern': '^_',
-                'caughtErrorsIgnorePattern': '^_'
-            }
-        ]
+        "no-unused-vars": "off",
+        "@typescript-eslint/no-unused-vars": ["error", {
+            'argsIgnorePattern': '^_',
+            'varsIgnorePattern': '^_',
+            'caughtErrorsIgnorePattern': '^_'
+        }]
     },
 };

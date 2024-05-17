@@ -1,4 +1,4 @@
-package pkg
+package jsonpath
 
 type Kind int
 
