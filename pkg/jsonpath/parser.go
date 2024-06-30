@@ -13,7 +13,7 @@ var (
 type Parser struct {
 	tokenizer *Tokenizer
 	tokens    []TokenInfo
-	root      Node
+	segments  []Segment
 	current   int
 }
 
@@ -30,60 +30,65 @@ func (p *Parser) Parse() (Node, error) {
 		return nil, fmt.Errorf("empty JSONPath expression")
 	}
 
-	if p.root != nil {
-		return p.root, nil
-	}
-
 	if p.tokens[p.current].Token != ROOT {
 		return nil, fmt.Errorf("%s: %w", p.tokenizer.ErrorString(p.tokens[p.current], fmt.Sprintf("unexpected token (expected '$')")), ParseError)
 	}
-	root, err := p.parseRoot()
+	p.current++
+
 	for p.current < len(p.tokens) {
-		p.parseSegment()
+		segment, err := p.parseSegment()
+		if err != nil {
+			return nil, err
+		}
+		p.segments = append(p.segments, segment)
 	}
 
 	if p.current < len(p.tokens) {
 		return nil, fmt.Errorf(p.tokenizer.ErrorString(p.tokens[p.current], fmt.Sprintf("unexpected token")))
 	}
-
-	p.root = root
-
-	return root, nil
 }
 
-// parseRoot parses the root node.
-func (p *Parser) parseRoot() (*RootNode, error) {
-	node := &RootNode{Dollar: p.tokens[p.current]}
-	p.current++
-	return node, nil
+// parseDescendantSegment parses a descendant segment (preceded by "..").
+func (p *Parser) parseDescendantSegment() (*DescendantSegment, error) {
+	if p.tokens[p.current].Token != RECURSIVE {
+		return nil, p.parseFailure(p.tokens[p.current], "expected '..'")
+	}
+
+	// three kinds of descendant segments
+	// "..*" -> recursive wildcard
+	// "..STRING_LITERAL" -> recursive hunt for an identifier
+	// "..[INNER_SEGMENT]" -> recursive hunt for some inner expression (e.g. a filter expression)
+	nextToken := p.tokens[p.current+1]
+	if nextToken.Token == WILDCARD {
+		node := &DescendantSegment{SubKind: DescendantWildcardSelector}
+		p.current += 2
+		return node, nil
+	} else if nextToken.Token == STRING_LITERAL {
+		node := &DescendantSegment{SubKind: DescendantDotNameSelector}
+		p.current += 2
+		return node, nil
+	} else if nextToken.Token == BRACE_LEFT {
+		node := &DescendantSegment{SubKind: DescendantLongSelector}
+		previousCurrent := p.current
+		p.current += 2
+		innerSegment, err := p.parseSegment()
+		node.LongFormInner = innerSegment
+		if err != nil {
+			p.current = previousCurrent
+			return nil, err
+		}
+		if p.tokens[p.current].Token != BRACE_RIGHT {
+			p.current = previousCurrent
+			return nil, p.parseFailure(p.tokens[p.current], "expected ']'")
+		}
+		return node, nil
+	}
+
+	return nil, p.parseFailure(nextToken, "unexpected descendant segment")
 }
 
-// parseCurrent parses the current node.
-func (p *Parser) parseCurrent() (*CurrentNode, error) {
-	node := &CurrentNode{At: p.tokens[p.current]}
-	p.current++
-	return node, nil
-}
-
-// parseIdentifier parses an identifier node.
-func (p *Parser) parseIdentifier() (*IdentifierNode, error) {
-	node := &IdentifierNode{Name: p.tokens[p.current]}
-	p.current++
-	return node, nil
-}
-
-// parseWildcard parses a wildcard node.
-func (p *Parser) parseWildcard() (*WildcardNode, error) {
-	node := &WildcardNode{Star: p.tokens[p.current]}
-	p.current++
-	return node, nil
-}
-
-// parseRecursiveDescent parses a recursive descent node.
-func (p *Parser) parseRecursiveDescent() (*RecursiveDescentNode, error) {
-	node := &RecursiveDescentNode{DoubleDot: p.tokens[p.current]}
-	p.current++
-	return node, nil
+func (p *Parser) parseFailure(target TokenInfo, msg string) error {
+	return errors.New(p.tokenizer.ErrorTokenString(target, msg))
 }
 
 // parseSubscriptOrFilter parses a subscript or filter node.
@@ -288,4 +293,36 @@ func (p *Parser) expect(token Token) bool {
 // isComparisonOperator returns true if the given token is a comparison operator.
 func (p *Parser) isComparisonOperator(token Token) bool {
 	return token == EQ || token == NE || token == GT || token == GE || token == LT || token == LE
+}
+
+func (p *Parser) parseSegment() (Segment, error) {
+	currentToken := p.tokens[p.current]
+	if currentToken.Token == RECURSIVE {
+		node, err := p.parseDescendantSegment()
+		if err != nil {
+			return nil, err
+		}
+		return node, nil
+	}
+	return p.parseChildSegment()
+}
+
+func (p *Parser) parseChildSegment() (Segment, error) {
+	firstToken := p.tokens[p.current]
+	if firstToken.Token == DOT && p.tokens[p.current+1].Token == WILDCARD {
+		p.current += 2
+		return &ChildSegment{: firstToken, Star: p.tokens[p.current]}, nil
+	} else if firstToken.Token == DOT && p.tokens[p.current+1].Token == STRING_LITERAL {
+		p.current += 2
+		return &DotNameSegment{Dot: firstToken, Name: p.tokens[p.current]}, nil
+	} else if firstToken.Token == DOT && p.tokens[p.current+1].Token == BRACE_LEFT {
+		p.current += 2
+		innerSegment, err := p.parseSegment()
+		if err != nil {
+			return nil, err
+		}
+		if p.tokens[p.current].Token != BRACE_RIGHT {
+	// .*
+	// .STRING_LITERAL
+	// []
 }

@@ -493,7 +493,6 @@ func (t *Tokenizer) scanString(quote rune) {
 			t.column += i - start + 1
 			return
 		}
-		foo := "\f"
 		if t.input[i] == '\\' {
 			escaped = !escaped
 		} else {
