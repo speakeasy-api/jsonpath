@@ -174,14 +174,11 @@ const (
 	UNION
 	CHILD
 	ARRAY_SLICE
-	FILTER_LEFT
-	FILTER_RIGHT
+	FILTER
 	PAREN_LEFT
 	PAREN_RIGHT
 	BRACKET_LEFT
 	BRACKET_RIGHT
-	BRACE_LEFT
-	BRACE_RIGHT
 	COLON
 	COMMA
 	DOT
@@ -219,13 +216,11 @@ var tokens = [...]string{
 	// filter selector (Section 2.3.5): selects
 	// particular children using a logical
 	// expression
-	FILTER_LEFT:   "?",
+	FILTER:        "?",
 	PAREN_LEFT:    "(",
 	PAREN_RIGHT:   ")",
 	BRACKET_LEFT:  "[",
 	BRACKET_RIGHT: "]",
-	BRACE_LEFT:    "{",
-	BRACE_RIGHT:   "}",
 	COLON:         ":",
 	COMMA:         ",",
 	DOT:           ".",
@@ -384,7 +379,7 @@ func (t *Tokenizer) Tokenize() []TokenInfo {
 		case ch == ':':
 			t.addToken(ARRAY_SLICE, 1, "")
 		case ch == '?':
-			t.addToken(FILTER_LEFT, 1, "")
+			t.addToken(FILTER, 1, "")
 		case ch == '(':
 			t.addToken(PAREN_LEFT, 1, "")
 			t.stack = append(t.stack, PAREN_LEFT)

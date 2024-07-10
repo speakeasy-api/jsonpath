@@ -23,7 +23,7 @@ type Query struct {
 
 var _ Node = DescendantSegment{}
 
-type DescendantKind int
+type DescendantSegmentSubKind int
 
 const (
 	DescendantWildcardSelector = iota
@@ -34,7 +34,7 @@ const (
 var _ Segment = DescendantSegment{}
 
 type DescendantSegment struct {
-	SubKind       DescendantKind
+	SubKind       DescendantSegmentSubKind
 	LongFormInner Segment
 }
 
@@ -52,8 +52,22 @@ func (d DescendantSegment) Kind() Kind {
 //	 (wildcard-selector /
 //	  member-name-shorthand))
 type ChildSegment struct {
-	Kind Kind
+	SubKind       ChildSegmentSubKind
+	Tokens        []TokenInfo
+	InnerSelector *Selector
 }
+
+func (c ChildSegment) Kind() Kind {
+	return ChildSegmentKind
+}
+
+type ChildSegmentSubKind int
+
+const (
+	ChildSegmentDotWildcard ChildSegmentSubKind = iota
+	ChildSegmentDotMemberName
+	ChildSegmentSelector
+)
 
 // Expr represents a JSONPath expression.
 type Expr interface {
