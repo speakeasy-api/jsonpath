@@ -291,47 +291,48 @@ func TestTokenizer(t *testing.T) {
 	}
 }
 
-func TestTokenizer_NoPanic(t *testing.T) {
+func TestTokenizer_categorize(t *testing.T) {
 	testCases := []struct {
 		name    string
 		path    string
 		illegal bool
+		simple  bool
 	}{
-		{name: "identity", path: ""},
-		{name: "root", path: "$"},
+		{name: "identity", path: "", simple: true},
+		{name: "root", path: "$", simple: true},
 		{name: "unmatched closing parenthesis", path: ")", illegal: true},
 		{name: "unmatched closing square bracket", path: "]", illegal: true},
-		{name: "dot child", path: "$.child"},
+		{name: "dot child", path: "$.child", simple: true},
 		{name: "dot child with implicit root", path: ".child"},
 		{name: "undotted child with implicit root", path: "child"},
-		{name: "dot child with no name", path: "$."},
-		{name: "dot child with missing dot", path: "$a"},
-		{name: "dot child with trailing dot", path: "$.child."},
-		{name: "dot child of dot child", path: "$.child1.child2"},
+		{name: "dot child with no name", path: "$.", simple: true},
+		{name: "dot child with missing dot", path: "$a", simple: true},
+		{name: "dot child with trailing dot", path: "$.child.", simple: true},
+		{name: "dot child of dot child", path: "$.child1.child2", simple: true},
 		{name: "dot child with array subscript", path: "$.child[*]"},
 		{name: "dot child with malformed array subscript", path: "$.child[1:2:3:4]"},
 		{name: "dot child with array subscript with zero step", path: "$.child[1:2:0]"},
 		{name: "dot child with non-integer array subscript", path: "$.child[1:2:a]"},
 		{name: "dot child with unclosed array subscript", path: "$.child[*"},
-		{name: "dot child with missing array subscript", path: "$.child[]"},
-		{name: "dot child with embedded space", path: "$.child more"},
-		{name: "bracket child", path: "$['child']"},
-		{name: "bracket child with double quotes", path: `$["child"]`},
+		{name: "dot child with missing array subscript", path: "$.child[]", simple: true},
+		{name: "dot child with embedded space", path: "$.child more", simple: true},
+		{name: "bracket child", path: "$['child']", simple: true},
+		{name: "bracket child with double quotes", path: `$["child"]`, simple: true},
 		{name: "bracket child with unmatched quotes", path: `$["child']`, illegal: true},
-		{name: "bracket child with empty name", path: "$['']"},
-		{name: "bracket child of bracket child", path: "$['child1']['child2']"},
-		{name: "double quoted bracket child of bracket child", path: `$['child1']["child2"]`},
+		{name: "bracket child with empty name", path: "$['']", simple: true},
+		{name: "bracket child of bracket child", path: "$['child1']['child2']", simple: true},
+		{name: "double quoted bracket child of bracket child", path: `$['child1']["child2"]`, simple: true},
 		{name: "bracket child union", path: "$['child','child2']"},
 		{name: "bracket child union with whitespace", path: "$[ 'child' , 'child2' ]"},
 		{name: "bracket child union with mixed quotes", path: `$[ 'child' , "child2" ]`},
-		{name: "bracket child quoted union literal", path: "$[',']"},
+		{name: "bracket child quoted union literal", path: "$[',']", simple: true},
 		{name: "bracket child with array subscript", path: "$['child'][*]"},
 		{name: "bracket child with malformed array subscript", path: "$['child'][1:2:3:4]"},
 		{name: "bracket child with non-integer array subscript", path: "$['child'][1:2:a]"},
 		{name: "bracket child with unclosed array subscript", path: "$['child'][*"},
-		{name: "bracket child with missing array subscript", path: "$['child'][]"},
-		{name: "bracket child followed by space", path: "$['child'] "},
-		{name: "bracket dotted child", path: "$['child1.child2']"},
+		{name: "bracket child with missing array subscript", path: "$['child'][]", simple: true},
+		{name: "bracket child followed by space", path: "$['child'] ", simple: true},
+		{name: "bracket dotted child", path: "$['child1.child2']", simple: true},
 		{name: "bracket child with array subscript", path: "$['child'][*]"},
 		{name: "property name dot child", path: "$.child~", illegal: true},
 		{name: "property name dot child with implicit root", path: ".child~", illegal: true},
@@ -374,9 +375,9 @@ func TestTokenizer_NoPanic(t *testing.T) {
 		{name: "bracket child with malformed array subscript", path: "$['child'][1:2:3:4]"},
 		{name: "bracket child with malformed array subscript in union", path: "$['child'][0,1:2:3:4]"},
 		{name: "bracket child with non-integer array subscript", path: "$['child'][1:2:a]"},
-		{name: "bracket child of dot child", path: "$.child1['child2']"},
+		{name: "bracket child of dot child", path: "$.child1['child2']", simple: true},
 		{name: "array slice of root", path: "$[1:3]"},
-		{name: "dot child of bracket child", path: "$['child1'].child2"},
+		{name: "dot child of bracket child", path: "$['child1'].child2", simple: true},
 		{name: "recursive descent", path: "$..child"},
 		{name: "recursive descent of dot child", path: "$.child1..child2"},
 		{name: "recursive descent of bracket child", path: "$['child1']..child2"},
@@ -484,10 +485,10 @@ func TestTokenizer_NoPanic(t *testing.T) {
 		{name: "filter regular expression to match float literal", path: `$[?(.1=~/.*/)]`, illegal: true},
 		{name: "filter invalid regular expression", path: `$[?(@.child=~/(.*/)]`, illegal: true},
 		{name: "unescaped single quote in bracket child name", path: `$['single'quote']`, illegal: true},
-		{name: "escaped single quote in bracket child name", path: `$['single\']quote']`},
-		{name: "escaped backslash in bracket child name", path: `$['\\']`},
+		{name: "escaped single quote in bracket child name", path: `$['single\']quote']`, simple: true},
+		{name: "escaped backslash in bracket child name", path: `$['\\']`, simple: true},
 		{name: "unescaped single quote after escaped backslash in bracket child name", path: `$['single\\'quote']`, illegal: true},
-		{name: "unsupported escape sequence in bracket child name", path: `$['\n']`},
+		{name: "unsupported escape sequence in bracket child name", path: `$['\n']`, simple: true},
 		{name: "unclosed and empty bracket child name with space", path: `$[ '`, illegal: true},
 		{name: "unclosed and empty bracket child name with formfeed", path: "[\f'", illegal: true},
 		{name: "filter involving value of current node on left hand side", path: "$[?(@==1)]"},
@@ -496,11 +497,11 @@ func TestTokenizer_NoPanic(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			defer func() {
-				if r := recover(); r != nil {
-					t.Errorf("Tokenizer panicked for path: %s\nPanic: %v", tc.path, r)
-				}
-			}()
+			//defer func() {
+			//	if r := recover(); r != nil {
+			//		t.Errorf("Tokenizer panicked for path: %s\nPanic: %v", tc.path, r)
+			//	}
+			//}()
 
 			tokenizer := NewTokenizer(tc.path)
 			tokenizedJsonPath := tokenizer.Tokenize()
@@ -515,6 +516,28 @@ func TestTokenizer_NoPanic(t *testing.T) {
 			}
 			if tc.illegal && !foundIllegal {
 				t.Errorf(tokenizer.ErrorTokenString(tokenizedJsonPath[0], "Expected an illegal token"))
+			}
+
+			if tc.simple && foundIllegal {
+				t.Errorf("Expected a simple path, but found an illegal token")
+			}
+
+			if tc.simple && !tokenizedJsonPath.IsSimple() {
+				for _, token := range tokenizedJsonPath {
+
+					simple := false
+					for _, subToken := range SimpleTokens {
+						if token.Token == subToken {
+							simple = true
+						}
+					}
+					if !simple {
+						t.Errorf(tokenizer.ErrorString(token, "Expected a simple path, but found a non-simple token"))
+					}
+				}
+			}
+			if !tc.simple && tokenizedJsonPath.IsSimple() {
+				t.Errorf(tokenizer.ErrorTokenString(tokenizedJsonPath[0], "Expected a non-simple path, but found it was simple"))
 			}
 		})
 	}

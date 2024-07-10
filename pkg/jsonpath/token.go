@@ -181,7 +181,6 @@ const (
 	BRACKET_RIGHT
 	COLON
 	COMMA
-	DOT
 	TILDE
 	AND
 	OR
@@ -194,6 +193,16 @@ const (
 	LE
 	MATCHES
 )
+
+var SimpleTokens = [...]Token{
+	STRING_LITERAL,
+	NUMBER,
+	STRING,
+	CHILD,
+	BRACKET_LEFT,
+	BRACKET_RIGHT,
+	ROOT,
+}
 
 var tokens = [...]string{
 	ILLEGAL:        "ILLEGAL",
@@ -223,7 +232,6 @@ var tokens = [...]string{
 	BRACKET_RIGHT: "]",
 	COLON:         ":",
 	COMMA:         ",",
-	DOT:           ".",
 	TILDE:         "~",
 	AND:           "&&",
 	OR:            "||",
@@ -243,6 +251,27 @@ func (tok Token) String() string {
 		return tokens[tok]
 	}
 	return "token(" + strconv.Itoa(int(tok)) + ")"
+}
+
+func (tok Tokens) IsSimple() bool {
+	if len(tok) == 0 {
+		return false
+	}
+	if tok[0].Token != ROOT {
+		return false
+	}
+	for _, token := range tok {
+		isSimple := false
+		for _, simpleToken := range SimpleTokens {
+			if token.Token == simpleToken {
+				isSimple = true
+			}
+		}
+		if !isSimple {
+			return false
+		}
+	}
+	return true
 }
 
 // When there's an error in the tokenizer, this helps represent it.
@@ -352,7 +381,7 @@ func NewTokenizer(input string) *Tokenizer {
 }
 
 // Tokenize tokenizes the input string and returns a slice of TokenInfo.
-func (t *Tokenizer) Tokenize() []TokenInfo {
+func (t *Tokenizer) Tokenize() Tokens {
 	for t.pos < len(t.input) {
 		t.skipWhitespace()
 		if t.pos >= len(t.input) {

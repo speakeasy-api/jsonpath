@@ -124,13 +124,13 @@ func (p *Parser) parseChildSegment() (Segment, error) {
 	// .STRING_LITERAL
 	// []
 	firstToken := p.tokens[p.current]
-	if firstToken.Token == DOT && p.tokens[p.current+1].Token == WILDCARD {
+	if firstToken.Token == CHILD && p.tokens[p.current+1].Token == WILDCARD {
 		p.current += 2
 		return &ChildSegment{SubKind: ChildSegmentDotWildcard, Tokens: []TokenInfo{firstToken, p.tokens[p.current+1]}}, nil
-	} else if firstToken.Token == DOT && p.tokens[p.current+1].Token == STRING_LITERAL {
+	} else if firstToken.Token == CHILD && p.tokens[p.current+1].Token == STRING_LITERAL {
 		p.current += 2
 		return &ChildSegment{SubKind: ChildSegmentDotMemberName, Tokens: []TokenInfo{firstToken, p.tokens[p.current+1]}}, nil
-	} else if firstToken.Token == DOT && p.tokens[p.current+1].Token == BRACKET_LEFT {
+	} else if firstToken.Token == CHILD && p.tokens[p.current+1].Token == BRACKET_LEFT {
 		prior := p.current
 		p.current += 2
 		innerSegment, err := p.parseSelector()
