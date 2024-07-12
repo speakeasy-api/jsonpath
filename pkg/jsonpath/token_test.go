@@ -252,6 +252,19 @@ func TestTokenizer(t *testing.T) {
 				{Token: BRACKET_RIGHT, Line: 1, Column: 13, Literal: "", Len: 1},
 			},
 		},
+		{
+			name:  "Underscore is string literal character",
+			input: "$.pagination._.next_results_cursor",
+			expected: []TokenInfo{
+				{Token: ROOT, Line: 1, Column: 0, Literal: "", Len: 1},
+				{Token: CHILD, Line: 1, Column: 1, Literal: "", Len: 1},
+				{Token: STRING_LITERAL, Line: 1, Column: 2, Literal: "pagination", Len: 10},
+				{Token: CHILD, Line: 1, Column: 12, Literal: "", Len: 1},
+				{Token: STRING_LITERAL, Line: 1, Column: 13, Literal: "_", Len: 1},
+				{Token: CHILD, Line: 1, Column: 14, Literal: "", Len: 1},
+				{Token: STRING_LITERAL, Line: 1, Column: 15, Literal: "next_results_cursor", Len: 19},
+			},
+		},
 		//{
 		//	name:  "Filter regular expression (illegal right now)",
 		//	input: "$[?(@.child=~/.*/)]",

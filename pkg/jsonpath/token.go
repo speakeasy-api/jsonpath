@@ -485,7 +485,7 @@ func (t *Tokenizer) Tokenize() Tokens {
 			t.scanString(rune(ch))
 		case isDigit(ch):
 			t.scanNumber()
-		case isLetter(ch):
+		case isLiteralChar(ch):
 			t.scanLiteral()
 		default:
 			t.addToken(ILLEGAL, 1, string(ch))
@@ -546,7 +546,7 @@ func (t *Tokenizer) scanNumber() {
 func (t *Tokenizer) scanLiteral() {
 	start := t.pos
 	for i := start; i < len(t.input); i++ {
-		if !isLetter(t.input[i]) {
+		if !isLiteralChar(t.input[i]) {
 			literal := t.input[start:i]
 			switch literal {
 			case "true", "false":
@@ -606,8 +606,8 @@ func isDigit(ch byte) bool {
 	return '0' <= ch && ch <= '9'
 }
 
-func isLetter(ch byte) bool {
-	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z'
+func isLiteralChar(ch byte) bool {
+	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
 }
 
 func isSpace(ch byte) bool {
