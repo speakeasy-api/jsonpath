@@ -51,14 +51,14 @@ export function Editor(props: EditorComponentProps) {
   }
 
   const options: any = {
-    readOnly: false,
+    readOnly: props.readonly,
     minimap: { enabled: false },
   };
 
   return (
     <MonacoEditor
       onMount={handleEditorDidMount}
-      defaultValue={props.value}
+      value={props.value}
       onChange={props.onChange}
       theme={"vscode-dark"}
       language="yaml"

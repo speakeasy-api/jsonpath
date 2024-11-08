@@ -1,6 +1,5 @@
 package jsonpath
 
-//
 //func TestParser(t *testing.T) {
 //	tests := []struct {
 //		name     string
@@ -79,14 +78,14 @@ package jsonpath
 //			tokenizer := NewTokenizer(test.input)
 //
 //			parser := NewParser(tokenizer)
-//			result, err := parser.Parse()
+//			err := parser.Parse()
 //
 //			if err != nil {
 //				t.Errorf("Unexpected error: %v", err)
 //				return
 //			}
 //
-//			actual := PrintNode(result)
+//			actual := PrintSegments(parser.segments)
 //			if actual != test.expected {
 //				t.Errorf("Expected:\n%s\nGot:\n%s", test.expected, actual)
 //			}
