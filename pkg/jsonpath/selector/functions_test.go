@@ -1,4 +1,4 @@
-package jsonpath
+package selector
 
 import (
 	"gopkg.in/yaml.v3"

@@ -1,4 +1,4 @@
-package jsonpath
+package primitive
 
 import (
 	"testing"

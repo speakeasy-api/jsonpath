@@ -1,4 +1,4 @@
-package jsonpath
+package selector
 
 import (
 	"fmt"
@@ -14,12 +14,6 @@ const (
 	SelectorSubKindArraySlice
 	SelectorSubKindArrayIndex
 )
-
-type Slice struct {
-	start *int
-	end   *int
-	step  *int
-}
 
 type Selector struct {
 	Kind  SelectorSubKind

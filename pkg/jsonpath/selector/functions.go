@@ -1,4 +1,4 @@
-package jsonpath
+package selector
 
 import (
 	"fmt"
@@ -266,11 +266,11 @@ func matchFunction() *Function {
 			pattern := args[1].Value
 			text := args[0].Value
 
-			matched, err := regexp.MatchString("^"+pattern+"$", text)
+			regex, err := regexp.Compile("^" + pattern + "$")
 			if err != nil {
 				return nil, err
 			}
-
+			matched := regex.MatchString(text)
 			return createLogicalResult(matched), nil
 		},
 	}
@@ -304,11 +304,12 @@ func searchFunction() *Function {
 			pattern := args[1].Value
 			text := args[0].Value
 
-			matched, err := regexp.MatchString(pattern, text)
+			regex, err := regexp.Compile(pattern)
 			if err != nil {
 				return nil, err
 			}
 
+			matched := regex.MatchString(text)
 			return createLogicalResult(matched), nil
 		},
 	}
