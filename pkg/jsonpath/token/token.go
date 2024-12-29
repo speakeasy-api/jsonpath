@@ -163,9 +163,11 @@ type Token int
 const (
 	ILLEGAL Token = iota
 	STRING
-	NUMBER
+	INTEGER
+	FLOAT
 	STRING_LITERAL
-	BOOLEAN
+	TRUE
+	FALSE
 	NULL
 	ROOT
 	CURRENT
@@ -195,7 +197,7 @@ const (
 
 var SimpleTokens = [...]Token{
 	STRING,
-	NUMBER,
+	INTEGER,
 	STRING_LITERAL,
 	CHILD,
 	BRACKET_LEFT,
@@ -206,9 +208,11 @@ var SimpleTokens = [...]Token{
 var tokens = [...]string{
 	ILLEGAL:        "ILLEGAL",
 	STRING:         "STRING",
-	NUMBER:         "NUMBER",
+	INTEGER:        "INTEGER",
+	FLOAT:          "FLOAT",
 	STRING_LITERAL: "STRING_LITERAL",
-	BOOLEAN:        "BOOLEAN",
+	TRUE:           "TRUE",
+	FALSE:          "FALSE",
 	NULL:           "NULL",
 	// root node identifier (Section 2.2)
 	ROOT: "$",
@@ -313,7 +317,7 @@ func (t Tokenizer) ErrorTokenString(target TokenInfo, msg string) string {
 	var errorBuilder strings.Builder
 
 	// Write the error message with line and column information
-	errorBuilder.WriteString(fmt.Sprintf("Error at line %d, column %d: %s\n", target.Line, target.Column, msg))
+	errorBuilder.WriteString(t.ErrorString(target, msg))
 
 	// Find the start and end positions of the line containing the target token
 	lineStart := 0
@@ -550,20 +554,63 @@ func (t *Tokenizer) scanString(quote rune) {
 	t.pos = len(t.input) - 1
 	t.column = len(t.input) - 1
 }
+
 func (t *Tokenizer) scanNumber() {
 	start := t.pos
+	tokenType := INTEGER
+	dotSeen := false
+	exponentSeen := false
+
 	for i := start; i < len(t.input); i++ {
 		if i == start && t.input[i] == '-' {
 			continue
 		}
+
+		if t.input[i] == '.' {
+			if dotSeen || exponentSeen {
+				t.addToken(ILLEGAL, len(t.input[start:i]), t.input[start:i])
+				t.pos = i
+				t.column += i - start
+				return
+			}
+			tokenType = FLOAT
+			dotSeen = true
+			continue
+		}
+
+		if t.input[i] == 'e' || t.input[i] == 'E' {
+			if exponentSeen {
+				t.addToken(ILLEGAL, len(t.input[start:i]), t.input[start:i])
+				t.pos = i
+				t.column += i - start
+				return
+			}
+			tokenType = FLOAT
+			exponentSeen = true
+			if i+1 < len(t.input) && (t.input[i+1] == '+' || t.input[i+1] == '-') {
+				i++
+			}
+			continue
+		}
+
 		if !isDigit(t.input[i]) {
-			t.addToken(NUMBER, len(t.input[start:i]), t.input[start:i])
+			literal := t.input[start:i]
+			t.addToken(tokenType, len(literal), literal)
 			t.pos = i - 1
 			t.column += i - start - 1
 			return
 		}
 	}
-	t.addToken(NUMBER, len(t.input[start:]), t.input[start:])
+
+	if exponentSeen && !isDigit(t.input[len(t.input)-1]) {
+		t.addToken(ILLEGAL, len(t.input[start:]), t.input[start:])
+		t.pos = len(t.input) - 1
+		t.column = len(t.input) - 1
+		return
+	}
+
+	literal := t.input[start:]
+	t.addToken(tokenType, len(literal), literal)
 	t.pos = len(t.input) - 1
 	t.column = len(t.input) - 1
 }
@@ -571,11 +618,13 @@ func (t *Tokenizer) scanNumber() {
 func (t *Tokenizer) scanLiteral() {
 	start := t.pos
 	for i := start; i < len(t.input); i++ {
-		if !isLiteralChar(t.input[i]) {
+		if !isLiteralChar(t.input[i]) && !isDigit(t.input[i]) {
 			literal := t.input[start:i]
 			switch literal {
-			case "true", "false":
-				t.addToken(BOOLEAN, len(literal), literal)
+			case "true":
+				t.addToken(TRUE, len(literal), literal)
+			case "false":
+				t.addToken(FALSE, len(literal), literal)
 			case "null":
 				t.addToken(NULL, len(literal), literal)
 			default:
@@ -588,8 +637,10 @@ func (t *Tokenizer) scanLiteral() {
 	}
 	literal := t.input[start:]
 	switch literal {
-	case "true", "false":
-		t.addToken(BOOLEAN, len(literal), literal)
+	case "true":
+		t.addToken(TRUE, len(literal), literal)
+	case "false":
+		t.addToken(FALSE, len(literal), literal)
 	case "null":
 		t.addToken(NULL, len(literal), literal)
 	default:

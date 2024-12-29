@@ -13,6 +13,7 @@ const (
 	SelectorSubKindName
 	SelectorSubKindArraySlice
 	SelectorSubKindArrayIndex
+	SelectorSubKindFilter
 )
 
 type Slice struct {
@@ -22,10 +23,11 @@ type Slice struct {
 }
 
 type Selector struct {
-	Kind  SelectorSubKind
-	name  string
-	index int
-	slice *Slice
+	Kind   SelectorSubKind
+	name   string
+	index  int
+	slice  *Slice
+	filter *FilterSelector
 }
 
 func (s Selector) ToString() string {

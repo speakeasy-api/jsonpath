@@ -7,7 +7,7 @@ type JsonPath interface {
 }
 
 type jsonpath struct {
-	query Query
+	query JsonPathQuery
 }
 
 type JsonPathError struct {
