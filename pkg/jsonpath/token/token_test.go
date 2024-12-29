@@ -1,4 +1,4 @@
-package jsonpath
+package token
 
 import (
 	"fmt"
@@ -24,9 +24,9 @@ func TestTokenizer(t *testing.T) {
 			expected: []TokenInfo{
 				{Token: ROOT, Line: 1, Column: 0, Literal: "", Len: 1},
 				{Token: CHILD, Line: 1, Column: 1, Literal: "", Len: 1},
-				{Token: STRING_LITERAL, Line: 1, Column: 2, Literal: "store", Len: 5},
+				{Token: STRING, Line: 1, Column: 2, Literal: "store", Len: 5},
 				{Token: CHILD, Line: 1, Column: 7, Literal: "", Len: 1},
-				{Token: STRING_LITERAL, Line: 1, Column: 8, Literal: "book", Len: 4},
+				{Token: STRING, Line: 1, Column: 8, Literal: "book", Len: 4},
 			},
 		},
 		{
@@ -44,7 +44,7 @@ func TestTokenizer(t *testing.T) {
 			expected: []TokenInfo{
 				{Token: ROOT, Line: 1, Column: 0, Literal: "", Len: 1},
 				{Token: RECURSIVE, Line: 1, Column: 1, Literal: "", Len: 2},
-				{Token: STRING_LITERAL, Line: 1, Column: 3, Literal: "author", Len: 6},
+				{Token: STRING, Line: 1, Column: 3, Literal: "author", Len: 6},
 			},
 		},
 		{
@@ -53,7 +53,7 @@ func TestTokenizer(t *testing.T) {
 			expected: []TokenInfo{
 				{Token: ROOT, Line: 1, Column: 0, Literal: "", Len: 1},
 				{Token: RECURSIVE, Line: 1, Column: 1, Literal: "", Len: 2},
-				{Token: STRING_LITERAL, Line: 1, Column: 3, Literal: "book", Len: 4},
+				{Token: STRING, Line: 1, Column: 3, Literal: "book", Len: 4},
 				{Token: BRACKET_LEFT, Line: 1, Column: 7, Literal: "", Len: 1},
 				{Token: NUMBER, Line: 1, Column: 8, Literal: "0", Len: 1},
 				{Token: UNION, Line: 1, Column: 9, Literal: "", Len: 1},
@@ -67,7 +67,7 @@ func TestTokenizer(t *testing.T) {
 			expected: []TokenInfo{
 				{Token: ROOT, Line: 1, Column: 0, Literal: "", Len: 1},
 				{Token: RECURSIVE, Line: 1, Column: 1, Literal: "", Len: 2},
-				{Token: STRING_LITERAL, Line: 1, Column: 3, Literal: "book", Len: 4},
+				{Token: STRING, Line: 1, Column: 3, Literal: "book", Len: 4},
 				{Token: BRACKET_LEFT, Line: 1, Column: 7, Literal: "", Len: 1},
 				{Token: NUMBER, Line: 1, Column: 8, Literal: "0", Len: 1},
 				{Token: ARRAY_SLICE, Line: 1, Column: 9, Literal: "", Len: 1},
@@ -81,15 +81,15 @@ func TestTokenizer(t *testing.T) {
 			expected: []TokenInfo{
 				{Token: ROOT, Line: 1, Column: 0, Literal: "", Len: 1},
 				{Token: CHILD, Line: 1, Column: 1, Literal: "", Len: 1},
-				{Token: STRING_LITERAL, Line: 1, Column: 2, Literal: "store", Len: 5},
+				{Token: STRING, Line: 1, Column: 2, Literal: "store", Len: 5},
 				{Token: CHILD, Line: 1, Column: 7, Literal: "", Len: 1},
-				{Token: STRING_LITERAL, Line: 1, Column: 8, Literal: "book", Len: 4},
+				{Token: STRING, Line: 1, Column: 8, Literal: "book", Len: 4},
 				{Token: BRACKET_LEFT, Line: 1, Column: 12, Literal: "", Len: 1},
 				{Token: FILTER, Line: 1, Column: 13, Literal: "", Len: 1},
 				{Token: PAREN_LEFT, Line: 1, Column: 14, Literal: "", Len: 1},
 				{Token: CURRENT, Line: 1, Column: 15, Literal: "", Len: 1},
 				{Token: CHILD, Line: 1, Column: 16, Literal: "", Len: 1},
-				{Token: STRING_LITERAL, Line: 1, Column: 17, Literal: "price", Len: 5},
+				{Token: STRING, Line: 1, Column: 17, Literal: "price", Len: 5},
 				{Token: LT, Line: 1, Column: 23, Literal: "", Len: 1},
 				{Token: NUMBER, Line: 1, Column: 25, Literal: "10", Len: 2},
 				{Token: PAREN_RIGHT, Line: 1, Column: 27, Literal: "", Len: 1},
@@ -106,9 +106,9 @@ func TestTokenizer(t *testing.T) {
 				{Token: PAREN_LEFT, Line: 1, Column: 3, Literal: "", Len: 1},
 				{Token: CURRENT, Line: 1, Column: 4, Literal: "", Len: 1},
 				{Token: CHILD, Line: 1, Column: 5, Literal: "", Len: 1},
-				{Token: STRING_LITERAL, Line: 1, Column: 6, Literal: "child", Len: 5},
+				{Token: STRING, Line: 1, Column: 6, Literal: "child", Len: 5},
 				{Token: EQ, Line: 1, Column: 11, Literal: "", Len: 2},
-				{Token: STRING, Line: 1, Column: 13, Literal: "x", Len: 1},
+				{Token: STRING_LITERAL, Line: 1, Column: 13, Literal: "x", Len: 1},
 				{Token: PAREN_RIGHT, Line: 1, Column: 16, Literal: "", Len: 1},
 				{Token: BRACKET_RIGHT, Line: 1, Column: 17, Literal: "", Len: 1},
 			},
@@ -123,9 +123,9 @@ func TestTokenizer(t *testing.T) {
 				{Token: PAREN_LEFT, Line: 1, Column: 3, Literal: "", Len: 1},
 				{Token: CURRENT, Line: 1, Column: 4, Literal: "", Len: 1},
 				{Token: CHILD, Line: 1, Column: 5, Literal: "", Len: 1},
-				{Token: STRING_LITERAL, Line: 1, Column: 6, Literal: "child", Len: 5},
+				{Token: STRING, Line: 1, Column: 6, Literal: "child", Len: 5},
 				{Token: NE, Line: 1, Column: 11, Literal: "", Len: 2},
-				{Token: STRING, Line: 1, Column: 13, Literal: "x", Len: 1},
+				{Token: STRING_LITERAL, Line: 1, Column: 13, Literal: "x", Len: 1},
 				{Token: PAREN_RIGHT, Line: 1, Column: 16, Literal: "", Len: 1},
 				{Token: BRACKET_RIGHT, Line: 1, Column: 17, Literal: "", Len: 1},
 			},
@@ -140,7 +140,7 @@ func TestTokenizer(t *testing.T) {
 				{Token: PAREN_LEFT, Line: 1, Column: 3, Literal: "", Len: 1},
 				{Token: CURRENT, Line: 1, Column: 4, Literal: "", Len: 1},
 				{Token: CHILD, Line: 1, Column: 5, Literal: "", Len: 1},
-				{Token: STRING_LITERAL, Line: 1, Column: 6, Literal: "child", Len: 5},
+				{Token: STRING, Line: 1, Column: 6, Literal: "child", Len: 5},
 				{Token: GT, Line: 1, Column: 11, Literal: "", Len: 1},
 				{Token: NUMBER, Line: 1, Column: 12, Literal: "1", Len: 1},
 				{Token: PAREN_RIGHT, Line: 1, Column: 13, Literal: "", Len: 1},
@@ -157,7 +157,7 @@ func TestTokenizer(t *testing.T) {
 				{Token: PAREN_LEFT, Line: 1, Column: 3, Literal: "", Len: 1},
 				{Token: CURRENT, Line: 1, Column: 4, Literal: "", Len: 1},
 				{Token: CHILD, Line: 1, Column: 5, Literal: "", Len: 1},
-				{Token: STRING_LITERAL, Line: 1, Column: 6, Literal: "child", Len: 5},
+				{Token: STRING, Line: 1, Column: 6, Literal: "child", Len: 5},
 				{Token: GE, Line: 1, Column: 11, Literal: "", Len: 2},
 				{Token: NUMBER, Line: 1, Column: 13, Literal: "1", Len: 1},
 				{Token: PAREN_RIGHT, Line: 1, Column: 14, Literal: "", Len: 1},
@@ -174,7 +174,7 @@ func TestTokenizer(t *testing.T) {
 				{Token: PAREN_LEFT, Line: 1, Column: 3, Literal: "", Len: 1},
 				{Token: CURRENT, Line: 1, Column: 4, Literal: "", Len: 1},
 				{Token: CHILD, Line: 1, Column: 5, Literal: "", Len: 1},
-				{Token: STRING_LITERAL, Line: 1, Column: 6, Literal: "child", Len: 5},
+				{Token: STRING, Line: 1, Column: 6, Literal: "child", Len: 5},
 				{Token: LT, Line: 1, Column: 11, Literal: "", Len: 1},
 				{Token: NUMBER, Line: 1, Column: 12, Literal: "1", Len: 1},
 				{Token: PAREN_RIGHT, Line: 1, Column: 13, Literal: "", Len: 1},
@@ -191,7 +191,7 @@ func TestTokenizer(t *testing.T) {
 				{Token: PAREN_LEFT, Line: 1, Column: 3, Literal: "", Len: 1},
 				{Token: CURRENT, Line: 1, Column: 4, Literal: "", Len: 1},
 				{Token: CHILD, Line: 1, Column: 5, Literal: "", Len: 1},
-				{Token: STRING_LITERAL, Line: 1, Column: 6, Literal: "child", Len: 5},
+				{Token: STRING, Line: 1, Column: 6, Literal: "child", Len: 5},
 				{Token: LE, Line: 1, Column: 11, Literal: "", Len: 2},
 				{Token: NUMBER, Line: 1, Column: 13, Literal: "1", Len: 1},
 				{Token: PAREN_RIGHT, Line: 1, Column: 14, Literal: "", Len: 1},
@@ -208,11 +208,11 @@ func TestTokenizer(t *testing.T) {
 				{Token: PAREN_LEFT, Line: 1, Column: 3, Literal: "", Len: 1},
 				{Token: CURRENT, Line: 1, Column: 4, Literal: "", Len: 1},
 				{Token: CHILD, Line: 1, Column: 5, Literal: "", Len: 1},
-				{Token: STRING_LITERAL, Line: 1, Column: 6, Literal: "child", Len: 5},
+				{Token: STRING, Line: 1, Column: 6, Literal: "child", Len: 5},
 				{Token: AND, Line: 1, Column: 11, Literal: "", Len: 2},
 				{Token: CURRENT, Line: 1, Column: 13, Literal: "", Len: 1},
 				{Token: CHILD, Line: 1, Column: 14, Literal: "", Len: 1},
-				{Token: STRING_LITERAL, Line: 1, Column: 15, Literal: "other", Len: 5},
+				{Token: STRING, Line: 1, Column: 15, Literal: "other", Len: 5},
 				{Token: PAREN_RIGHT, Line: 1, Column: 20, Literal: "", Len: 1},
 				{Token: BRACKET_RIGHT, Line: 1, Column: 21, Literal: "", Len: 1},
 			},
@@ -227,11 +227,11 @@ func TestTokenizer(t *testing.T) {
 				{Token: PAREN_LEFT, Line: 1, Column: 3, Literal: "", Len: 1},
 				{Token: CURRENT, Line: 1, Column: 4, Literal: "", Len: 1},
 				{Token: CHILD, Line: 1, Column: 5, Literal: "", Len: 1},
-				{Token: STRING_LITERAL, Line: 1, Column: 6, Literal: "child", Len: 5},
+				{Token: STRING, Line: 1, Column: 6, Literal: "child", Len: 5},
 				{Token: OR, Line: 1, Column: 11, Literal: "", Len: 2},
 				{Token: CURRENT, Line: 1, Column: 13, Literal: "", Len: 1},
 				{Token: CHILD, Line: 1, Column: 14, Literal: "", Len: 1},
-				{Token: STRING_LITERAL, Line: 1, Column: 15, Literal: "other", Len: 5},
+				{Token: STRING, Line: 1, Column: 15, Literal: "other", Len: 5},
 				{Token: PAREN_RIGHT, Line: 1, Column: 20, Literal: "", Len: 1},
 				{Token: BRACKET_RIGHT, Line: 1, Column: 21, Literal: "", Len: 1},
 			},
@@ -247,7 +247,7 @@ func TestTokenizer(t *testing.T) {
 				{Token: NOT, Line: 1, Column: 4, Literal: "", Len: 1},
 				{Token: CURRENT, Line: 1, Column: 5, Literal: "", Len: 1},
 				{Token: CHILD, Line: 1, Column: 6, Literal: "", Len: 1},
-				{Token: STRING_LITERAL, Line: 1, Column: 7, Literal: "child", Len: 5},
+				{Token: STRING, Line: 1, Column: 7, Literal: "child", Len: 5},
 				{Token: PAREN_RIGHT, Line: 1, Column: 12, Literal: "", Len: 1},
 				{Token: BRACKET_RIGHT, Line: 1, Column: 13, Literal: "", Len: 1},
 			},
@@ -258,11 +258,11 @@ func TestTokenizer(t *testing.T) {
 			expected: []TokenInfo{
 				{Token: ROOT, Line: 1, Column: 0, Literal: "", Len: 1},
 				{Token: CHILD, Line: 1, Column: 1, Literal: "", Len: 1},
-				{Token: STRING_LITERAL, Line: 1, Column: 2, Literal: "pagination", Len: 10},
+				{Token: STRING, Line: 1, Column: 2, Literal: "pagination", Len: 10},
 				{Token: CHILD, Line: 1, Column: 12, Literal: "", Len: 1},
-				{Token: STRING_LITERAL, Line: 1, Column: 13, Literal: "_", Len: 1},
+				{Token: STRING, Line: 1, Column: 13, Literal: "_", Len: 1},
 				{Token: CHILD, Line: 1, Column: 14, Literal: "", Len: 1},
-				{Token: STRING_LITERAL, Line: 1, Column: 15, Literal: "next_results_cursor", Len: 19},
+				{Token: STRING, Line: 1, Column: 15, Literal: "next_results_cursor", Len: 19},
 			},
 		},
 		//{
@@ -274,7 +274,7 @@ func TestTokenizer(t *testing.T) {
 		//		{Token: PAREN_LEFT, Line: 1, Column: 3, Literal: "", Len: 1},
 		//		{Token: CURRENT, Line: 1, Column: 4, Literal: "", Len: 1},
 		//		{Token: CHILD, Line: 1, Column: 5, Literal: "", Len: 1},
-		//		{Token: STRING_LITERAL, Line: 1, Column: 6, Literal: "child", Len: 5},
+		//		{Token: STRING, Line: 1, Column: 6, Literal: "child", Len: 5},
 		//		{Token: MATCHES, Line: 1, Column: 11, Literal: "", Len: 2},
 		//		{Token: ILLEGAL, Line: 1, Column: 13, Literal: "", Len: 1},
 		//		{Token: PAREN_RIGHT, Line: 1, Column: 17, Literal: "", Len: 1},
@@ -551,6 +551,74 @@ func TestTokenizer_categorize(t *testing.T) {
 			}
 			if !tc.simple && tokenizedJsonPath.IsSimple() {
 				t.Errorf(tokenizer.ErrorTokenString(tokenizedJsonPath[0], "Expected a non-simple path, but found it was simple"))
+			}
+		})
+	}
+}
+
+func TestString(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+		err      bool
+	}{
+		{
+			name:     "Valid double quoted string",
+			input:    `"test"`,
+			expected: "test",
+		},
+		{
+			name:     "Valid double quoted string with newline",
+			input:    `"test\n"`,
+			expected: "test\n",
+		},
+		{
+			name:     "Valid double quoted string with escaped quote",
+			input:    `"test\""`,
+			expected: `test"`,
+		},
+		{
+			name:     "Valid single quoted string",
+			input:    `'test'`,
+			expected: "test",
+		},
+		{
+			name:     "Valid single quoted string with double quote",
+			input:    `'te"st'`,
+			expected: `te"st`,
+		},
+		{
+			name:     "Valid single quoted string with escaped single quote",
+			input:    `'te\'st'`,
+			expected: `te'st`,
+		},
+		{
+			name:  "Invalid Unicode control character",
+			input: "\u0000",
+			err:   true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			tokenizer := NewTokenizer(test.input)
+			tokens := tokenizer.Tokenize()
+
+			if test.err {
+				if len(tokens) != 1 || tokens[0].Token != ILLEGAL {
+					t.Errorf("Expected an illegal token, but got: %v", tokens)
+				}
+			} else {
+				if len(tokens) != 1 {
+					t.Errorf("Expected a single token, but got: %v", tokens)
+				} else if tokens[0].Token != STRING_LITERAL {
+					t.Errorf("Expected a STRING_LITERAL token, but got: %v", tokens[0])
+				} else if tokens[0].Literal != test.expected {
+					t.Errorf("Expected literal '%s', but got '%s'", test.expected, tokens[0].Literal)
+				} else if tokens[0].Len != len(test.input) {
+					t.Errorf("Expected length %d, but got %d", len(test.input), tokens[0].Len)
+				}
 			}
 		})
 	}

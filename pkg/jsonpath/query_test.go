@@ -1,6 +1,7 @@
 package jsonpath
 
 import (
+	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/token"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -14,16 +15,16 @@ func TestQuery_ToString(t *testing.T) {
 		{
 			name: "root query",
 			query: Query{
-				Kind:     TokenInfo{Token: ROOT},
-				Segments: []Segment{},
+				Kind:     token.TokenInfo{Token: token.ROOT},
+				Segments: []*Segment{},
 			},
 			expected: "$",
 		},
 		{
 			name: "current query",
 			query: Query{
-				Kind:     TokenInfo{Token: CURRENT},
-				Segments: []Segment{},
+				Kind:     token.TokenInfo{Token: token.CURRENT},
+				Segments: []*Segment{},
 			},
 			expected: "@",
 		},

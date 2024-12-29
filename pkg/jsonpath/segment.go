@@ -44,7 +44,7 @@ type SegmentKind int
 type ChildSegment struct {
 	kind      ChildSegmentSubKind
 	dotName   string
-	selectors []Selector
+	selectors []*Selector
 }
 
 func (s ChildSegment) ToString() string {
@@ -112,8 +112,17 @@ func (s ChildSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 
 }
 
+type DescendantSegmentSubKind int
+
+const (
+	DescendantSegmentSubKindWildcard DescendantSegmentSubKind = iota
+	DescendantSegmentSubKindDotName
+	DescendantSegmentSubKindLongHand
+)
+
 type DescendantSegment struct {
-	innerSegment Segment
+	SubKind      DescendantSegmentSubKind
+	innerSegment *Segment
 }
 
 func (s DescendantSegment) ToString() string {

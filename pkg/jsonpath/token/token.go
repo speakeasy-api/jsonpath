@@ -1,4 +1,4 @@
-package jsonpath
+package token
 
 import (
 	"fmt"
@@ -162,9 +162,9 @@ type Token int
 // The list of tokens.
 const (
 	ILLEGAL Token = iota
-	STRING_LITERAL
-	NUMBER
 	STRING
+	NUMBER
+	STRING_LITERAL
 	BOOLEAN
 	NULL
 	ROOT
@@ -179,7 +179,6 @@ const (
 	PAREN_RIGHT
 	BRACKET_LEFT
 	BRACKET_RIGHT
-	COLON
 	COMMA
 	TILDE
 	AND
@@ -195,9 +194,9 @@ const (
 )
 
 var SimpleTokens = [...]Token{
-	STRING_LITERAL,
-	NUMBER,
 	STRING,
+	NUMBER,
+	STRING_LITERAL,
 	CHILD,
 	BRACKET_LEFT,
 	BRACKET_RIGHT,
@@ -206,9 +205,9 @@ var SimpleTokens = [...]Token{
 
 var tokens = [...]string{
 	ILLEGAL:        "ILLEGAL",
-	STRING_LITERAL: "STRING_LITERAL",
-	NUMBER:         "NUMBER",
 	STRING:         "STRING",
+	NUMBER:         "NUMBER",
+	STRING_LITERAL: "STRING_LITERAL",
 	BOOLEAN:        "BOOLEAN",
 	NULL:           "NULL",
 	// root node identifier (Section 2.2)
@@ -230,7 +229,6 @@ var tokens = [...]string{
 	PAREN_RIGHT:   ")",
 	BRACKET_LEFT:  "[",
 	BRACKET_RIGHT: "]",
-	COLON:         ":",
 	COMMA:         ",",
 	TILDE:         "~",
 	AND:           "&&",
@@ -483,6 +481,8 @@ func (t *Tokenizer) Tokenize() Tokens {
 			}
 		case ch == '"' || ch == '\'':
 			t.scanString(rune(ch))
+		case ch == '-' && isDigit(t.peek()):
+			fallthrough
 		case isDigit(ch):
 			t.scanNumber()
 		case isLiteralChar(ch):
@@ -509,28 +509,53 @@ func (t *Tokenizer) addToken(token Token, len int, literal string) {
 
 func (t *Tokenizer) scanString(quote rune) {
 	start := t.pos + 1
-	escaped := false
+	var literal strings.Builder
 	for i := start; i < len(t.input); i++ {
-		if t.input[i] == byte(quote) && !escaped {
-			t.addToken(STRING, len(t.input[start:i]), t.input[start:i])
+		if t.input[i] == byte(quote) {
+			t.addToken(STRING_LITERAL, len(t.input[start:i])+2, literal.String())
 			t.pos = i
 			t.column += i - start + 1
 			return
 		}
 		if t.input[i] == '\\' {
-			escaped = !escaped
+			i++
+			if i >= len(t.input) {
+				t.addToken(ILLEGAL, len(t.input[start:]), literal.String())
+				t.pos = len(t.input) - 1
+				t.column = len(t.input) - 1
+				return
+			}
+			switch t.input[i] {
+			case 'b':
+				literal.WriteByte('\b')
+			case 'f':
+				literal.WriteByte('\f')
+			case 'n':
+				literal.WriteByte('\n')
+			case 'r':
+				literal.WriteByte('\r')
+			case 't':
+				literal.WriteByte('\t')
+			case '\\', '"', '\'':
+				literal.WriteByte(t.input[i])
+			default:
+				literal.WriteByte('\\')
+				literal.WriteByte(t.input[i])
+			}
 		} else {
-			escaped = false
+			literal.WriteByte(t.input[i])
 		}
 	}
-	t.addToken(ILLEGAL, len(t.input[start:]), t.input[start:])
+	t.addToken(ILLEGAL, len(t.input[start:]), literal.String())
 	t.pos = len(t.input) - 1
 	t.column = len(t.input) - 1
 }
-
 func (t *Tokenizer) scanNumber() {
 	start := t.pos
 	for i := start; i < len(t.input); i++ {
+		if i == start && t.input[i] == '-' {
+			continue
+		}
 		if !isDigit(t.input[i]) {
 			t.addToken(NUMBER, len(t.input[start:i]), t.input[start:i])
 			t.pos = i - 1
@@ -554,7 +579,7 @@ func (t *Tokenizer) scanLiteral() {
 			case "null":
 				t.addToken(NULL, len(literal), literal)
 			default:
-				t.addToken(STRING_LITERAL, len(literal), literal)
+				t.addToken(STRING, len(literal), literal)
 			}
 			t.pos = i - 1
 			t.column += i - start - 1
@@ -568,7 +593,7 @@ func (t *Tokenizer) scanLiteral() {
 	case "null":
 		t.addToken(NULL, len(literal), literal)
 	default:
-		t.addToken(STRING_LITERAL, len(literal), literal)
+		t.addToken(STRING, len(literal), literal)
 	}
 	t.pos = len(t.input) - 1
 	t.column = len(t.input) - 1
