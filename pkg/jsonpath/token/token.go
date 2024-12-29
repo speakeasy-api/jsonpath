@@ -173,7 +173,6 @@ const (
 	CURRENT
 	WILDCARD
 	RECURSIVE
-	UNION
 	CHILD
 	ARRAY_SLICE
 	FILTER
@@ -193,6 +192,7 @@ const (
 	LT
 	LE
 	MATCHES
+	FUNCTION
 )
 
 var SimpleTokens = [...]Token{
@@ -221,7 +221,6 @@ var tokens = [...]string{
 	CURRENT:   "@",
 	WILDCARD:  "*",
 	RECURSIVE: "..",
-	UNION:     ",",
 	CHILD:     ".",
 	// start:end:step array slice operator (Section 2.3.4)
 	ARRAY_SLICE: ":",
@@ -245,6 +244,7 @@ var tokens = [...]string{
 	LT:            "<",
 	LE:            "<=",
 	MATCHES:       "=~",
+	FUNCTION:      "FUNCTION",
 }
 
 // String returns the string representation of the token.
@@ -406,7 +406,7 @@ func (t *Tokenizer) Tokenize() Tokens {
 				t.addToken(CHILD, 1, "")
 			}
 		case ch == ',':
-			t.addToken(UNION, 1, "")
+			t.addToken(COMMA, 1, "")
 		case ch == ':':
 			t.addToken(ARRAY_SLICE, 1, "")
 		case ch == '?':
@@ -628,7 +628,11 @@ func (t *Tokenizer) scanLiteral() {
 			case "null":
 				t.addToken(NULL, len(literal), literal)
 			default:
-				t.addToken(STRING, len(literal), literal)
+				if t.input[i] == '(' && isFunctionName(literal) {
+					t.addToken(FUNCTION, len(literal), literal)
+				} else {
+					t.addToken(STRING, len(literal), literal)
+				}
 			}
 			t.pos = i - 1
 			t.column += i - start - 1
@@ -648,6 +652,10 @@ func (t *Tokenizer) scanLiteral() {
 	}
 	t.pos = len(t.input) - 1
 	t.column = len(t.input) - 1
+}
+
+func isFunctionName(literal string) bool {
+	return literal == "length" || literal == "count" || literal == "match" || literal == "search" || literal == "value"
 }
 
 func (t *Tokenizer) skipWhitespace() {
