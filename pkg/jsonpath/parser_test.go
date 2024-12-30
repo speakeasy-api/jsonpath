@@ -72,8 +72,8 @@ func TestParser(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			tokenizer := token.NewTokenizer(test.input)
 
-			parser := NewParser(tokenizer, tokenizer.Tokenize())
-			err := parser.Parse()
+			parser := newParserPrivate(tokenizer, tokenizer.Tokenize())
+			err := parser.parse()
 
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)

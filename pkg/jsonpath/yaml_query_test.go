@@ -103,14 +103,14 @@ store:
 			}
 
 			tokenizer := token.NewTokenizer(test.input)
-			parser := NewParser(tokenizer, tokenizer.Tokenize())
-			err = parser.Parse()
+			parser := newParserPrivate(tokenizer, tokenizer.Tokenize())
+			err = parser.parse()
 			if err != nil {
-				t.Errorf("Error parsing JSON path: %v", err)
+				t.Errorf("Error parsing JSON ast: %v", err)
 				return
 			}
 
-			result := parser.path.Query(&root, &root)
+			result := parser.ast.Query(&root, &root)
 			var actual []string
 			for _, node := range result {
 				actual = append(actual, nodeToString(node))

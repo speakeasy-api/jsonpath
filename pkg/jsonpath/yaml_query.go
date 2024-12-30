@@ -8,11 +8,11 @@ type Evaluator interface {
 	Query(current *yaml.Node, root *yaml.Node) []*yaml.Node
 }
 
-// JsonPathQuery can be Evaluated
-var _ Evaluator = JsonPathQuery{}
+// jsonPathAST can be Evaluated
+var _ Evaluator = jsonPathAST{}
 
-func (q JsonPathQuery) Query(current *yaml.Node, root *yaml.Node) []*yaml.Node {
-	var result []*yaml.Node
+func (q jsonPathAST) Query(current *yaml.Node, root *yaml.Node) []*yaml.Node {
+	result := make([]*yaml.Node, 0)
 	// If the top level node is a documentnode, unwrap it
 	if root.Kind == yaml.DocumentNode && len(root.Content) == 1 {
 		root = root.Content[0]
@@ -55,10 +55,21 @@ func (s childSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 	switch s.kind {
 	case childSegmentDotWildcard:
 		// Handle wildcard - get all children
-		for _, child := range value.Content {
-			result = append(result, child)
+		switch value.Kind {
+		case yaml.MappingNode:
+			// in a mapping node, keys and values alternate
+			// we just want to return the values
+			for i, child := range value.Content {
+				if i%2 == 1 {
+					result = append(result, child)
+				}
+			}
+		case yaml.SequenceNode:
+			for _, child := range value.Content {
+				result = append(result, child)
+			}
 		}
-
+		return result
 	case childSegmentDotMemberName:
 		// Handle member access
 		if value.Kind == yaml.MappingNode {
@@ -249,10 +260,10 @@ func (q filterQuery) Query(node *yaml.Node, root *yaml.Node) []*yaml.Node {
 
 func (q relQuery) Query(node *yaml.Node, root *yaml.Node) []*yaml.Node {
 	result := []*yaml.Node{node}
-	for _, segment := range q.segments {
+	for _, seg := range q.segments {
 		var newResult []*yaml.Node
 		for _, value := range result {
-			newResult = append(newResult, segment.Query(value, root)...)
+			newResult = append(newResult, seg.Query(value, root)...)
 		}
 		result = newResult
 	}
@@ -261,10 +272,10 @@ func (q relQuery) Query(node *yaml.Node, root *yaml.Node) []*yaml.Node {
 
 func (q absQuery) Query(node *yaml.Node, root *yaml.Node) []*yaml.Node {
 	result := []*yaml.Node{root}
-	for _, segment := range q.segments {
+	for _, seg := range q.segments {
 		var newResult []*yaml.Node
 		for _, value := range result {
-			newResult = append(newResult, segment.Query(value, root)...)
+			newResult = append(newResult, seg.Query(value, root)...)
 		}
 		result = newResult
 	}

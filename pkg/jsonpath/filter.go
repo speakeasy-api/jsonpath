@@ -25,7 +25,7 @@ type relQuery struct {
 // filterQuery filter-query        = rel-query / jsonpath-query
 type filterQuery struct {
 	relQuery      *relQuery
-	jsonPathQuery *JsonPathQuery
+	jsonPathQuery *jsonPathAST
 }
 
 // functionArgument function-argument   = literal /
@@ -112,7 +112,7 @@ type literal struct {
 	null    *bool
 }
 
-type absQuery JsonPathQuery
+type absQuery jsonPathAST
 
 // singularQuery singular-query = rel-singular-query / abs-singular-query
 type singularQuery struct {

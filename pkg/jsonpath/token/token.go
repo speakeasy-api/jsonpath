@@ -664,7 +664,7 @@ func (t *Tokenizer) skipWhitespace() {
 	//                         %x09 /    ; Horizontal tab
 	//                         %x0A /    ; Line feed or New line
 	//                         %x0D      ; Carriage return
-	for t.pos < len(t.input) {
+	for len(t.tokens) > 0 && t.pos+1 < len(t.input) {
 		ch := t.input[t.pos]
 		if ch == '\n' {
 			t.line++
@@ -691,7 +691,8 @@ func isDigit(ch byte) bool {
 }
 
 func isLiteralChar(ch byte) bool {
-	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
+	// allow unicode characters
+	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || ch >= 0x80
 }
 
 func isSpace(ch byte) bool {
