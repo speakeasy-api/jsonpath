@@ -13,6 +13,10 @@ var _ Evaluator = JsonPathQuery{}
 
 func (q JsonPathQuery) Query(current *yaml.Node, root *yaml.Node) []*yaml.Node {
 	var result []*yaml.Node
+	// If the top level node is a documentnode, unwrap it
+	if root.Kind == yaml.DocumentNode && len(root.Content) == 1 {
+		root = root.Content[0]
+	}
 	result = append(result, root)
 
 	for _, segment := range q.Segments {

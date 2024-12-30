@@ -13,6 +13,12 @@ func (l Literal) Equals(value Literal) bool {
 	if l.Float64 != nil && value.Float64 != nil {
 		return *l.Float64 == *value.Float64
 	}
+	if l.Integer != nil && value.Float64 != nil {
+		return float64(*l.Integer) == *value.Float64
+	}
+	if l.Float64 != nil && value.Integer != nil {
+		return *l.Float64 == float64(*value.Integer)
+	}
 	if l.String != nil && value.String != nil {
 		return *l.String == *value.String
 	}
@@ -31,6 +37,12 @@ func (l Literal) LessThan(value Literal) bool {
 	}
 	if l.Float64 != nil && value.Float64 != nil {
 		return *l.Float64 < *value.Float64
+	}
+	if l.Integer != nil && value.Float64 != nil {
+		return float64(*l.Integer) < *value.Float64
+	}
+	if l.Float64 != nil && value.Integer != nil {
+		return *l.Float64 < float64(*value.Integer)
 	}
 	return false
 }
@@ -129,9 +141,10 @@ func nodeToLiteral(node *yaml.Node) Literal {
 		b, _ := strconv.ParseBool(node.Value)
 		return Literal{Bool: &b}
 	case "!!null":
-		return Literal{Null: boolPtr(true)}
+		b := true
+		return Literal{Null: &b}
 	default:
-		return Literal{Null: boolPtr(true)}
+		return Literal{}
 	}
 }
 
