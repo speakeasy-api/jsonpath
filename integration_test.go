@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 	"os"
 	"slices"
@@ -28,7 +28,7 @@ type Test struct {
 func TestJSONPathComplianceTestSuite(t *testing.T) {
 	// Read the test suite JSON file
 	file, err := os.ReadFile("./jsonpath-compliance-test-suite/cts.json")
-	assert.NoError(t, err, "Failed to read test suite file")
+	require.NoError(t, err, "Failed to read test suite file")
 	// alter the file to delete any unicode tests: these break the yaml library we use..
 	var testSuite FullTestSuite
 	json.Unmarshal(file, &testSuite)
@@ -46,18 +46,18 @@ func TestJSONPathComplianceTestSuite(t *testing.T) {
 			// Test case for a valid selector
 			jp, err := jsonpath.NewJSONPath(test.Selector)
 			if test.InvalidSelector {
-				assert.Error(t, err, "Expected an error for invalid selector, but got none")
+				require.Error(t, err, "Expected an error for invalid selector, but got none")
 				return
 			} else {
-				assert.NoError(t, err, "Failed to parse JSONPath selector")
+				require.NoError(t, err, "Failed to parse JSONPath selector")
 			}
 			// interface{} to yaml.Node
 			toYAML := func(i interface{}) *yaml.Node {
 				o, err := yaml.Marshal(i)
-				assert.NoError(t, err, "Failed to marshal interface to yaml")
+				require.NoError(t, err, "Failed to marshal interface to yaml")
 				n := new(yaml.Node)
 				err = yaml.Unmarshal(o, n)
-				assert.NoError(t, err, "Failed to unmarshal yaml to yaml.Node")
+				require.NoError(t, err, "Failed to unmarshal yaml to yaml.Node")
 				// unwrap the document node
 				if n.Kind == yaml.DocumentNode && len(n.Content) == 1 {
 					n = n.Content[0]
