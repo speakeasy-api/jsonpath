@@ -134,17 +134,26 @@ func (p *JSONPath) parseChildSegment() (*segment, error) {
 	} else if firstToken.Token == token.BRACKET_LEFT {
 		prior := p.current
 		p.current += 1
-		innerSegment, err := p.parseSelector()
-		if err != nil {
-			p.current = prior
-			return nil, err
+		selectors := []*Selector{}
+		for p.current < len(p.tokens) {
+			innerSegment, err := p.parseSelector()
+			if err != nil {
+				p.current = prior
+				return nil, err
+			}
+			selectors = append(selectors, innerSegment)
+			if p.tokens[p.current].Token == token.BRACKET_RIGHT {
+				break
+			} else if p.tokens[p.current].Token == token.COMMA {
+				p.current++
+			}
 		}
 		if p.tokens[p.current].Token != token.BRACKET_RIGHT {
 			prior = p.current
 			return nil, p.parseFailure(p.tokens[p.current], "expected ']'")
 		}
 		p.current += 1
-		return &segment{&childSegment{kind: childSegmentLongHand, dotName: "", selectors: []*Selector{innerSegment}}, nil}, nil
+		return &segment{&childSegment{kind: childSegmentLongHand, dotName: "", selectors: selectors}, nil}, nil
 	}
 	return nil, p.parseFailure(firstToken, "unexpected token when parsing child segment")
 }
