@@ -63,7 +63,7 @@ func TestParser(t *testing.T) {
 		},
 		{
 			name:     "Function call",
-			input:    "$.books[?(@.length() > 100)]",
+			input:    "$.books[?(length(@) > 100)]",
 			expected: "$\n├── books\n└── [?length() > 100]\n   └── length() > 100\n       ├── length()\n       └── 100\n",
 		},
 	}

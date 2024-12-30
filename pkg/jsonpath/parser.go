@@ -393,39 +393,16 @@ func (p *Parser) parseComparisonExpr() (*ComparisonExpr, error) {
 }
 
 func (p *Parser) parseComparable() (*Comparable, error) {
+	//	comparable = literal /
+	//	singular-query / ; singular query value
+	//	function-expr    ; ValueType
+	if literal, err := p.parseLiteral(); err == nil {
+		return &Comparable{Literal: literal}, nil
+	}
+	if funcExpr, err := p.parseFunctionExpr(); err == nil {
+		return &Comparable{FunctionExpr: funcExpr}, nil
+	}
 	switch p.tokens[p.current].Token {
-	case token.STRING_LITERAL:
-		literal := p.tokens[p.current].Literal
-		p.current++
-		return &Comparable{&Literal{String: &literal}, nil}, nil
-	case token.INTEGER:
-		literal := p.tokens[p.current].Literal
-		p.current++
-		i, err := strconv.Atoi(literal)
-		if err != nil {
-			return nil, p.parseFailure(p.tokens[p.current], "expected integer")
-		}
-		return &Comparable{Literal: &Literal{Integer: &i}}, nil
-	case token.FLOAT:
-		literal := p.tokens[p.current].Literal
-		p.current++
-		f, err := strconv.ParseFloat(literal, 64)
-		if err != nil {
-			return nil, p.parseFailure(p.tokens[p.current], "expected float")
-		}
-		return &Comparable{Literal: &Literal{Float64: &f}}, nil
-	case token.TRUE:
-		p.current++
-		res := true
-		return &Comparable{Literal: &Literal{Bool: &res}}, nil
-	case token.FALSE:
-		p.current++
-		res := false
-		return &Comparable{Literal: &Literal{Bool: &res}}, nil
-	case token.NULL:
-		p.current++
-		res := true
-		return &Comparable{Literal: &Literal{Null: &res}}, nil
 	case token.ROOT:
 		p.current++
 		query, err := p.parseSingleQuery()
@@ -471,13 +448,15 @@ func (p *Parser) parseTestExpr() (*TestExpr, error) {
 	}
 	switch p.tokens[p.current].Token {
 	case token.CURRENT:
-		query, err := p.parseQuery()
+		p.current++
+		query, err := p.parseSingleQuery()
 		if err != nil {
 			return nil, err
 		}
 		return &TestExpr{FilterQuery: &FilterQuery{RelQuery: &RelQuery{Segments: query.Segments}}, Not: not}, nil
 	case token.ROOT:
-		query, err := p.parseQuery()
+		p.current++
+		query, err := p.parseSingleQuery()
 		if err != nil {
 			return nil, err
 		}
@@ -494,7 +473,28 @@ func (p *Parser) parseTestExpr() (*TestExpr, error) {
 }
 
 func (p *Parser) parseFunctionExpr() (*FunctionExpr, error) {
-	return nil, p.parseFailure(p.tokens[p.current], "unimplemented function expr")
+	functionName := p.tokens[p.current].Literal
+	if p.tokens[p.current+1].Token != token.PAREN_LEFT {
+		return nil, p.parseFailure(p.tokens[p.current+1], "expected '('")
+	}
+	p.current += 2
+	args := []*FunctionArgument{}
+	for p.current < len(p.tokens) {
+		arg, err := p.parseFunctionArgument()
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, arg)
+		if p.tokens[p.current].Token != token.COMMA {
+			break
+		}
+		p.current++
+	}
+	if p.tokens[p.current].Token != token.PAREN_RIGHT {
+		return nil, p.parseFailure(p.tokens[p.current], "expected ')'")
+	}
+	p.current++
+	return &FunctionExpr{Type: functionTypeMap[functionName], Args: args}, nil
 }
 
 func (p *Parser) parseSingleQuery() (*JsonPathQuery, error) {
@@ -509,5 +509,82 @@ func (p *Parser) parseSingleQuery() (*JsonPathQuery, error) {
 		}
 		query.Segments = append(query.Segments, segment)
 	}
+	//if len(query.Segments) == 0 {
+	//	return nil, p.parseFailure(p.tokens[p.current], "expected at least one segment")
+	//}
 	return &query, nil
+}
+
+func (p *Parser) parseFunctionArgument() (*FunctionArgument, error) {
+	//function-argument   = literal /
+	//	filter-query / ; (includes singular-query)
+	//  logical-expr /
+	//	function-expr
+
+	if literal, err := p.parseLiteral(); err == nil {
+		return &FunctionArgument{Literal: literal}, nil
+	}
+	if funcExpr, err := p.parseFunctionExpr(); err == nil {
+		return &FunctionArgument{FunctionExpr: funcExpr}, nil
+	}
+	if expr, err := p.parseLogicalOrExpr(); err == nil {
+		return &FunctionArgument{LogicalExpr: expr}, nil
+	}
+
+	switch p.tokens[p.current].Token {
+	case token.CURRENT:
+		p.current++
+		query, err := p.parseSingleQuery()
+		if err != nil {
+			return nil, err
+		}
+		return &FunctionArgument{FilterQuery: &FilterQuery{RelQuery: &RelQuery{Segments: query.Segments}}}, nil
+	case token.ROOT:
+		p.current++
+		query, err := p.parseSingleQuery()
+		if err != nil {
+			return nil, err
+		}
+		return &FunctionArgument{FilterQuery: &FilterQuery{JsonPathQuery: &JsonPathQuery{Segments: query.Segments}}}, nil
+	}
+
+	return nil, p.parseFailure(p.tokens[p.current], "unexpected token for function argument")
+}
+
+func (p *Parser) parseLiteral() (*Literal, error) {
+	switch p.tokens[p.current].Token {
+	case token.STRING_LITERAL:
+		literal := p.tokens[p.current].Literal
+		p.current++
+		return &Literal{String: &literal}, nil
+	case token.INTEGER:
+		literal := p.tokens[p.current].Literal
+		p.current++
+		i, err := strconv.Atoi(literal)
+		if err != nil {
+			return nil, p.parseFailure(p.tokens[p.current], "expected integer")
+		}
+		return &Literal{Integer: &i}, nil
+	case token.FLOAT:
+		literal := p.tokens[p.current].Literal
+		p.current++
+		f, err := strconv.ParseFloat(literal, 64)
+		if err != nil {
+			return nil, p.parseFailure(p.tokens[p.current], "expected float")
+		}
+		return &Literal{Float64: &f}, nil
+	case token.TRUE:
+		p.current++
+		res := true
+		return &Literal{Bool: &res}, nil
+	case token.FALSE:
+		p.current++
+		res := false
+		return &Literal{Bool: &res}, nil
+	case token.NULL:
+		p.current++
+		res := true
+		return &Literal{Null: &res}, nil
+	}
+	return nil, p.parseFailure(p.tokens[p.current], "expected literal")
 }

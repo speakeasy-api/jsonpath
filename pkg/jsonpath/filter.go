@@ -56,21 +56,21 @@ const (
 	FunctionTypeValue
 )
 
+var functionTypeMap = map[string]FunctionType{
+	"length": FunctionTypeLength,
+	"count":  FunctionTypeCount,
+	"match":  FunctionTypeMatch,
+	"search": FunctionTypeSearch,
+	"value":  FunctionTypeValue,
+}
+
 func (f FunctionType) String() string {
-	switch f {
-	case FunctionTypeLength:
-		return "length"
-	case FunctionTypeCount:
-		return "count"
-	case FunctionTypeMatch:
-		return "match"
-	case FunctionTypeSearch:
-		return "search"
-	case FunctionTypeValue:
-		return "value"
-	default:
-		return "unknown"
+	for k, v := range functionTypeMap {
+		if v == f {
+			return k
+		}
 	}
+	return "unknown"
 }
 
 // FunctionExpr function-expr       = function-name "(" S [function-argument
@@ -128,6 +128,7 @@ type SingularQuery struct {
 type Comparable struct {
 	Literal       *Literal
 	SingularQuery *SingularQuery
+	FunctionExpr  *FunctionExpr
 }
 
 // ComparisonExpr represents a comparison expression
