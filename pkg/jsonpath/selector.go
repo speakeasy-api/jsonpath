@@ -2,7 +2,6 @@ package jsonpath
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"strconv"
 )
 
@@ -41,33 +40,4 @@ func (s Selector) ToString() string {
 		panic(fmt.Sprintf("unimplemented selector kind: %v", s.Kind))
 	}
 	return ""
-}
-
-func (s Selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
-	switch s.Kind {
-	case SelectorSubKindName:
-		if value.Kind != yaml.MappingNode {
-			return nil
-		}
-		// MappingNode children is a list of alternating keys and values
-		var key string
-		for i, child := range value.Content {
-			if i%2 == 0 {
-				key = child.Value
-				continue
-			}
-			if key == s.name {
-				return []*yaml.Node{child}
-			}
-		}
-	case SelectorSubKindArrayIndex:
-		if value.Kind != yaml.SequenceNode {
-			return nil
-		}
-		if s.index >= len(value.Content) {
-			return nil
-		}
-		return []*yaml.Node{value.Content[s.index]}
-	}
-	return nil
 }

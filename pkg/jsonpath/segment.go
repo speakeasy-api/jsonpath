@@ -29,16 +29,6 @@ func (s Segment) ToString() string {
 
 }
 
-func (s Segment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
-	if s.Child != nil {
-		return s.Child.Query(value, root)
-	} else if s.Descendant != nil {
-		return s.Descendant.Query(value, root)
-	} else {
-		panic("no segment type")
-	}
-}
-
 type SegmentKind int
 
 type ChildSegment struct {
@@ -73,45 +63,6 @@ func (s ChildSegment) ToString() string {
 	return builder.String()
 }
 
-func (s ChildSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
-	result := []*yaml.Node{}
-
-	switch s.kind {
-	case ChildSegmentDotWildcard:
-		// Handle wildcard - get all children
-		for _, child := range value.Content {
-			result = append(result, child)
-		}
-
-	case ChildSegmentDotMemberName:
-		// Handle member access
-		if value.Kind == yaml.MappingNode {
-			// In YAML mapping nodes, keys and values alternate
-
-			for i := 0; i < len(value.Content); i += 2 {
-				key := value.Content[i]
-				val := value.Content[i+1]
-
-				if key.Value == s.dotName {
-					result = append(result, val)
-					break
-				}
-			}
-		}
-
-	case ChildSegmentLongHand:
-		// Handle long hand selectors
-		for _, selector := range s.selectors {
-			result = append(result, selector.Query(value, root)...)
-		}
-	default:
-		panic("unknown child segment kind")
-	}
-
-	return result
-
-}
-
 type DescendantSegmentSubKind int
 
 const (
@@ -130,16 +81,6 @@ func (s DescendantSegment) ToString() string {
 	builder.WriteString("..")
 	builder.WriteString(s.innerSegment.ToString())
 	return builder.String()
-}
-
-func (s DescendantSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
-	// run the inner segment against this node
-	result := s.innerSegment.Query(value, root)
-	children := descend(value, root)
-	for _, child := range children {
-		result = append(result, s.innerSegment.Query(child, root)...)
-	}
-	return result
 }
 
 func descend(value *yaml.Node, root *yaml.Node) []*yaml.Node {

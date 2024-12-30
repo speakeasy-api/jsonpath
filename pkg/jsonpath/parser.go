@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/token"
 	"strconv"
+	"strings"
 )
 
 // Parser represents a JSONPath parser.
@@ -53,16 +54,15 @@ func (p *Parser) parseDescendantSegment() (*DescendantSegment, error) {
 	// "..*" -> recursive wildcard
 	// "..STRING" -> recursive hunt for an identifier
 	// "..[INNER_SEGMENT]" -> recursive hunt for some inner expression (e.g. a filter expression)
-	nextToken := p.tokens[p.current+1]
-	if nextToken.Token == token.WILDCARD {
+	if p.peek(token.WILDCARD) {
 		node := &DescendantSegment{SubKind: DescendantSegmentSubKindWildcard}
 		p.current += 2
 		return node, nil
-	} else if nextToken.Token == token.STRING {
+	} else if p.peek(token.STRING) {
 		node := &DescendantSegment{SubKind: DescendantSegmentSubKindDotName}
 		p.current += 2
 		return node, nil
-	} else if nextToken.Token == token.BRACKET_LEFT {
+	} else if p.peek(token.BRACKET_LEFT) {
 		node := &DescendantSegment{SubKind: DescendantSegmentSubKindLongHand}
 		previousCurrent := p.current
 		p.current += 2
@@ -81,7 +81,7 @@ func (p *Parser) parseDescendantSegment() (*DescendantSegment, error) {
 		return node, nil
 	}
 
-	return nil, p.parseFailure(nextToken, "unexpected descendant segment")
+	return nil, p.parseFailure(p.tokens[p.current], "unexpected descendant segment")
 }
 
 func (p *Parser) parseFailure(target token.TokenInfo, msg string) error {
@@ -124,10 +124,10 @@ func (p *Parser) parseChildSegment() (*Segment, error) {
 	// .STRING
 	// []
 	firstToken := p.tokens[p.current]
-	if firstToken.Token == token.CHILD && p.tokens[p.current+1].Token == token.WILDCARD {
+	if firstToken.Token == token.CHILD && p.peek(token.WILDCARD) {
 		p.current += 2
 		return &Segment{&ChildSegment{ChildSegmentDotWildcard, "", nil}, nil}, nil
-	} else if firstToken.Token == token.CHILD && p.tokens[p.current+1].Token == token.STRING {
+	} else if firstToken.Token == token.CHILD && p.peek(token.STRING) {
 		dotName := p.tokens[p.current+1].Literal
 		p.current += 2
 		return &Segment{&ChildSegment{ChildSegmentDotMemberName, dotName, nil}, nil}, nil
@@ -587,4 +587,18 @@ func (p *Parser) parseLiteral() (*Literal, error) {
 		return &Literal{Null: &res}, nil
 	}
 	return nil, p.parseFailure(p.tokens[p.current], "expected literal")
+}
+
+type JsonPathQuery struct {
+	// "$"
+	Segments []*Segment
+}
+
+func (q JsonPathQuery) ToString() string {
+	b := strings.Builder{}
+	b.WriteString("$")
+	for _, segment := range q.Segments {
+		b.WriteString(segment.ToString())
+	}
+	return b.String()
 }
