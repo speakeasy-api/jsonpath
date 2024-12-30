@@ -91,7 +91,6 @@ store:
 `,
 			expected: []string{"Book 1"},
 		},
-		// Add more test cases as needed
 	}
 
 	for _, test := range tests {

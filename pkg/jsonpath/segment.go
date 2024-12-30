@@ -5,20 +5,20 @@ import (
 	"strings"
 )
 
-type Segment struct {
-	Child      *ChildSegment
-	Descendant *DescendantSegment
+type segment struct {
+	Child      *childSegment
+	Descendant *descendantSegment
 }
 
-type ChildSegmentSubKind int
+type childSegmentSubKind int
 
 const (
-	ChildSegmentDotWildcard   ChildSegmentSubKind = iota // .*
-	ChildSegmentDotMemberName                            // .property
-	ChildSegmentLongHand                                 // [ Selector[] ]
+	childSegmentDotWildcard   childSegmentSubKind = iota // .*
+	childSegmentDotMemberName                            // .property
+	childSegmentLongHand                                 // [ Selector[] ]
 )
 
-func (s Segment) ToString() string {
+func (s segment) ToString() string {
 	if s.Child != nil {
 		return s.Child.ToString()
 	} else if s.Descendant != nil {
@@ -29,25 +29,25 @@ func (s Segment) ToString() string {
 
 }
 
-type SegmentKind int
+type segmentKind int
 
-type ChildSegment struct {
-	kind      ChildSegmentSubKind
+type childSegment struct {
+	kind      childSegmentSubKind
 	dotName   string
 	selectors []*Selector
 }
 
-func (s ChildSegment) ToString() string {
+func (s childSegment) ToString() string {
 	builder := strings.Builder{}
 	switch s.kind {
-	case ChildSegmentDotWildcard:
+	case childSegmentDotWildcard:
 		builder.WriteString(".*")
 		break
-	case ChildSegmentDotMemberName:
+	case childSegmentDotMemberName:
 		builder.WriteString(".")
 		builder.WriteString(s.dotName)
 		break
-	case ChildSegmentLongHand:
+	case childSegmentLongHand:
 		builder.WriteString("[")
 		for i, selector := range s.selectors {
 			builder.WriteString(selector.ToString())
@@ -63,20 +63,20 @@ func (s ChildSegment) ToString() string {
 	return builder.String()
 }
 
-type DescendantSegmentSubKind int
+type descendantSegmentSubKind int
 
 const (
-	DescendantSegmentSubKindWildcard DescendantSegmentSubKind = iota
-	DescendantSegmentSubKindDotName
-	DescendantSegmentSubKindLongHand
+	descendantSegmentSubKindWildcard descendantSegmentSubKind = iota
+	descendantSegmentSubKindDotName
+	descendantSegmentSubKindLongHand
 )
 
-type DescendantSegment struct {
-	SubKind      DescendantSegmentSubKind
-	innerSegment *Segment
+type descendantSegment struct {
+	subKind      descendantSegmentSubKind
+	innerSegment *segment
 }
 
-func (s DescendantSegment) ToString() string {
+func (s descendantSegment) ToString() string {
 	builder := strings.Builder{}
 	builder.WriteString("..")
 	builder.WriteString(s.innerSegment.ToString())

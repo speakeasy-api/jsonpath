@@ -1,43 +1,43 @@
 package jsonpath
 
 // filter-selector     = "?" S logical-expr
-type FilterSelector struct {
+type filterSelector struct {
 	// logical-expr        = logical-or-expr
-	Expression *LogicalOrExpr
+	expression *logicalOrExpr
 }
 
 // logical-or-expr     = logical-and-expr *(S "||" S logical-and-expr)
-type LogicalOrExpr struct {
-	Expressions []*LogicalAndExpr
+type logicalOrExpr struct {
+	expressions []*logicalAndExpr
 }
 
 // logical-and-expr    = basic-expr *(S "&&" S basic-expr)
-type LogicalAndExpr struct {
-	Expressions []*BasicExpr
+type logicalAndExpr struct {
+	expressions []*basicExpr
 }
 
-// RelQuery rel-query = current-node-identifier segments
+// relQuery rel-query = current-node-identifier segments
 // current-node-identifier = "@"
-type RelQuery struct {
-	Segments []*Segment
+type relQuery struct {
+	segments []*segment
 }
 
-// FilterQuery filter-query        = rel-query / jsonpath-query
-type FilterQuery struct {
-	RelQuery      *RelQuery
-	JsonPathQuery *JsonPathQuery
+// filterQuery filter-query        = rel-query / jsonpath-query
+type filterQuery struct {
+	relQuery      *relQuery
+	jsonPathQuery *JsonPathQuery
 }
 
-// FunctionArgument function-argument   = literal /
+// functionArgument function-argument   = literal /
 //
 //	filter-query / ; (includes singular-query)
 //	logical-expr /
 //	function-expr
-type FunctionArgument struct {
-	Literal      *Literal
-	FilterQuery  *FilterQuery
-	LogicalExpr  *LogicalOrExpr
-	FunctionExpr *FunctionExpr
+type functionArgument struct {
+	literal      *literal
+	filterQuery  *filterQuery
+	logicalExpr  *logicalOrExpr
+	functionExpr *functionExpr
 }
 
 //function-name       = function-name-first *function-name-char
@@ -46,25 +46,25 @@ type FunctionArgument struct {
 //LCALPHA             = %x61-7A  ; "a".."z"
 //
 
-type FunctionType int
+type functionType int
 
 const (
-	FunctionTypeLength FunctionType = iota
-	FunctionTypeCount
-	FunctionTypeMatch
-	FunctionTypeSearch
-	FunctionTypeValue
+	functionTypeLength functionType = iota
+	functionTypeCount
+	functionTypeMatch
+	functionTypeSearch
+	functionTypeValue
 )
 
-var functionTypeMap = map[string]FunctionType{
-	"length": FunctionTypeLength,
-	"count":  FunctionTypeCount,
-	"match":  FunctionTypeMatch,
-	"search": FunctionTypeSearch,
-	"value":  FunctionTypeValue,
+var functionTypeMap = map[string]functionType{
+	"length": functionTypeLength,
+	"count":  functionTypeCount,
+	"match":  functionTypeMatch,
+	"search": functionTypeSearch,
+	"value":  functionTypeValue,
 }
 
-func (f FunctionType) String() string {
+func (f functionType) String() string {
 	for k, v := range functionTypeMap {
 		if v == f {
 			return k
@@ -73,65 +73,65 @@ func (f FunctionType) String() string {
 	return "unknown"
 }
 
-// FunctionExpr function-expr       = function-name "(" S [function-argument
+// functionExpr function-expr       = function-name "(" S [function-argument
 // *(S "," S function-argument)] S ")"
-type FunctionExpr struct {
-	Type FunctionType
-	Args []*FunctionArgument
+type functionExpr struct {
+	funcType functionType
+	args     []*functionArgument
 }
 
-// TestExpr test-expr           = [logical-not-op S]
+// testExpr test-expr           = [logical-not-op S]
 //
 //	(filter-query / ; existence/non-existence
 //	 function-expr) ; LogicalType or NodesType
-type TestExpr struct {
-	Not          bool
-	FilterQuery  *FilterQuery
-	FunctionExpr *FunctionExpr
+type testExpr struct {
+	not          bool
+	filterQuery  *filterQuery
+	functionExpr *functionExpr
 }
 
-// BasicExpr basic-expr          =
+// basicExpr basic-expr          =
 //
 //	 paren-expr /
 //		comparison-expr /
 //		test-expr
-type BasicExpr struct {
-	ParenExpr      *ParenExpr
-	ComparisonExpr *ComparisonExpr
-	TestExpr       *TestExpr
+type basicExpr struct {
+	parenExpr      *parenExpr
+	comparisonExpr *comparisonExpr
+	testExpr       *testExpr
 }
 
-// Literal literal = number /
+// literal literal = number /
 // . string-literal /
 // . true / false / null
-type Literal struct {
-	Integer *int
-	Float64 *float64
-	String  *string
-	Bool    *bool
-	Null    *bool
+type literal struct {
+	integer *int
+	float64 *float64
+	string  *string
+	bool    *bool
+	null    *bool
 }
 
-type AbsQuery JsonPathQuery
+type absQuery JsonPathQuery
 
-// SingularQuery singular-query = rel-singular-query / abs-singular-query
-type SingularQuery struct {
-	RelQuery *RelQuery
-	AbsQuery *AbsQuery
+// singularQuery singular-query = rel-singular-query / abs-singular-query
+type singularQuery struct {
+	relQuery *relQuery
+	absQuery *absQuery
 }
 
-// Comparable
+// comparable
 //
 //	comparable = literal /
 //	singular-query / ; singular query value
 //	function-expr    ; ValueType
-type Comparable struct {
-	Literal       *Literal
-	SingularQuery *SingularQuery
-	FunctionExpr  *FunctionExpr
+type comparable struct {
+	literal       *literal
+	singularQuery *singularQuery
+	functionExpr  *functionExpr
 }
 
-// ComparisonExpr represents a comparison expression
+// comparisonExpr represents a comparison expression
 //
 //	comparison-expr     = comparable S comparison-op S comparable
 //	literal             = number / string-literal /
@@ -142,35 +142,35 @@ type Comparable struct {
 //	comparison-op       = "==" / "!=" /
 //	                      "<=" / ">=" /
 //	                      "<"  / ">"
-type ComparisonExpr struct {
-	Left  *Comparable
-	Op    ComparisonOperator
-	Right *Comparable
+type comparisonExpr struct {
+	left  *comparable
+	op    comparisonOperator
+	right *comparable
 }
 
-// ExistExpr represents an existence expression
-type ExistExpr struct {
-	Query string
+// existExpr represents an existence expression
+type existExpr struct {
+	query string
 }
 
-// ParenExpr represents a parenthesized expression
+// parenExpr represents a parenthesized expression
 //
 //	paren-expr          = [logical-not-op S] "(" S logical-expr S ")"
-type ParenExpr struct {
+type parenExpr struct {
 	// "!"
-	Not bool
-	// "(" LogicalOrExpr ")"
-	Expr *LogicalOrExpr
+	not bool
+	// "(" logicalOrExpr ")"
+	expr *logicalOrExpr
 }
 
-// ComparisonOperator represents a comparison operator
-type ComparisonOperator int
+// comparisonOperator represents a comparison operator
+type comparisonOperator int
 
 const (
-	EqualTo ComparisonOperator = iota
-	NotEqualTo
-	LessThan
-	LessThanEqualTo
-	GreaterThan
-	GreaterThanEqualTo
+	equalTo comparisonOperator = iota
+	notEqualTo
+	lessThan
+	lessThanEqualTo
+	greaterThan
+	greaterThanEqualTo
 )

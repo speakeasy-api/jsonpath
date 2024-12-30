@@ -19,7 +19,7 @@ func (q JsonPathQuery) Query(current *yaml.Node, root *yaml.Node) []*yaml.Node {
 	}
 	result = append(result, root)
 
-	for _, segment := range q.Segments {
+	for _, segment := range q.segments {
 		newValue := []*yaml.Node{}
 		for _, value := range result {
 			newValue = append(newValue, segment.Query(value, root)...)
@@ -29,7 +29,7 @@ func (q JsonPathQuery) Query(current *yaml.Node, root *yaml.Node) []*yaml.Node {
 	return result
 }
 
-func (s Segment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
+func (s segment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 	if s.Child != nil {
 		return s.Child.Query(value, root)
 	} else if s.Descendant != nil {
@@ -39,7 +39,7 @@ func (s Segment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 	}
 }
 
-func (s DescendantSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
+func (s descendantSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 	// run the inner segment against this node
 	result := s.innerSegment.Query(value, root)
 	children := descend(value, root)
@@ -49,17 +49,17 @@ func (s DescendantSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node
 	return result
 }
 
-func (s ChildSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
+func (s childSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 	result := []*yaml.Node{}
 
 	switch s.kind {
-	case ChildSegmentDotWildcard:
+	case childSegmentDotWildcard:
 		// Handle wildcard - get all children
 		for _, child := range value.Content {
 			result = append(result, child)
 		}
 
-	case ChildSegmentDotMemberName:
+	case childSegmentDotMemberName:
 		// Handle member access
 		if value.Kind == yaml.MappingNode {
 			// In YAML mapping nodes, keys and values alternate
@@ -75,7 +75,7 @@ func (s ChildSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 			}
 		}
 
-	case ChildSegmentLongHand:
+	case childSegmentLongHand:
 		// Handle long hand selectors
 		for _, selector := range s.selectors {
 			result = append(result, selector.Query(value, root)...)
@@ -160,12 +160,12 @@ func (s Selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 	return nil
 }
 
-func (s FilterSelector) Matches(node *yaml.Node, root *yaml.Node) bool {
-	return s.Expression.Matches(node, root)
+func (s filterSelector) Matches(node *yaml.Node, root *yaml.Node) bool {
+	return s.expression.Matches(node, root)
 }
 
-func (e LogicalOrExpr) Matches(node *yaml.Node, root *yaml.Node) bool {
-	for _, expr := range e.Expressions {
+func (e logicalOrExpr) Matches(node *yaml.Node, root *yaml.Node) bool {
+	for _, expr := range e.expressions {
 		if expr.Matches(node, root) {
 			return true
 		}
@@ -173,8 +173,8 @@ func (e LogicalOrExpr) Matches(node *yaml.Node, root *yaml.Node) bool {
 	return false
 }
 
-func (e LogicalAndExpr) Matches(node *yaml.Node, root *yaml.Node) bool {
-	for _, expr := range e.Expressions {
+func (e logicalAndExpr) Matches(node *yaml.Node, root *yaml.Node) bool {
+	for _, expr := range e.expressions {
 		if !expr.Matches(node, root) {
 			return false
 		}
@@ -182,74 +182,74 @@ func (e LogicalAndExpr) Matches(node *yaml.Node, root *yaml.Node) bool {
 	return true
 }
 
-func (e BasicExpr) Matches(node *yaml.Node, root *yaml.Node) bool {
-	if e.ParenExpr != nil {
-		result := e.ParenExpr.Expr.Matches(node, root)
-		if e.ParenExpr.Not {
+func (e basicExpr) Matches(node *yaml.Node, root *yaml.Node) bool {
+	if e.parenExpr != nil {
+		result := e.parenExpr.expr.Matches(node, root)
+		if e.parenExpr.not {
 			return !result
 		}
 		return result
-	} else if e.ComparisonExpr != nil {
-		return e.ComparisonExpr.Matches(node, root)
-	} else if e.TestExpr != nil {
-		return e.TestExpr.Matches(node, root)
+	} else if e.comparisonExpr != nil {
+		return e.comparisonExpr.Matches(node, root)
+	} else if e.testExpr != nil {
+		return e.testExpr.Matches(node, root)
 	}
 	return false
 }
 
-func (e ComparisonExpr) Matches(node *yaml.Node, root *yaml.Node) bool {
-	leftValue := e.Left.Evaluate(node, root)
-	rightValue := e.Right.Evaluate(node, root)
+func (e comparisonExpr) Matches(node *yaml.Node, root *yaml.Node) bool {
+	leftValue := e.left.Evaluate(node, root)
+	rightValue := e.right.Evaluate(node, root)
 
-	switch e.Op {
-	case EqualTo:
+	switch e.op {
+	case equalTo:
 		return leftValue.Equals(rightValue)
-	case NotEqualTo:
+	case notEqualTo:
 		return !leftValue.Equals(rightValue)
-	case LessThan:
+	case lessThan:
 		return leftValue.LessThan(rightValue)
-	case LessThanEqualTo:
+	case lessThanEqualTo:
 		return leftValue.LessThanOrEqual(rightValue)
-	case GreaterThan:
+	case greaterThan:
 		return rightValue.LessThan(leftValue)
-	case GreaterThanEqualTo:
+	case greaterThanEqualTo:
 		return rightValue.LessThanOrEqual(leftValue)
 	default:
 		return false
 	}
 }
 
-func (e TestExpr) Matches(node *yaml.Node, root *yaml.Node) bool {
+func (e testExpr) Matches(node *yaml.Node, root *yaml.Node) bool {
 	var result bool
-	if e.FilterQuery != nil {
-		result = len(e.FilterQuery.Query(node, root)) > 0
-	} else if e.FunctionExpr != nil {
-		funcResult := e.FunctionExpr.Evaluate(node, root)
-		if funcResult.Bool != nil {
-			result = *funcResult.Bool
-		} else if funcResult.Null == nil {
+	if e.filterQuery != nil {
+		result = len(e.filterQuery.Query(node, root)) > 0
+	} else if e.functionExpr != nil {
+		funcResult := e.functionExpr.Evaluate(node, root)
+		if funcResult.bool != nil {
+			result = *funcResult.bool
+		} else if funcResult.null == nil {
 			result = true
 		}
 	}
-	if e.Not {
+	if e.not {
 		return !result
 	}
 	return result
 }
 
-func (q FilterQuery) Query(node *yaml.Node, root *yaml.Node) []*yaml.Node {
-	if q.RelQuery != nil {
-		return q.RelQuery.Query(node, root)
+func (q filterQuery) Query(node *yaml.Node, root *yaml.Node) []*yaml.Node {
+	if q.relQuery != nil {
+		return q.relQuery.Query(node, root)
 	}
-	if q.JsonPathQuery != nil {
-		return q.JsonPathQuery.Query(node, root)
+	if q.jsonPathQuery != nil {
+		return q.jsonPathQuery.Query(node, root)
 	}
 	return nil
 }
 
-func (q RelQuery) Query(node *yaml.Node, root *yaml.Node) []*yaml.Node {
+func (q relQuery) Query(node *yaml.Node, root *yaml.Node) []*yaml.Node {
 	result := []*yaml.Node{node}
-	for _, segment := range q.Segments {
+	for _, segment := range q.segments {
 		var newResult []*yaml.Node
 		for _, value := range result {
 			newResult = append(newResult, segment.Query(value, root)...)
@@ -259,9 +259,9 @@ func (q RelQuery) Query(node *yaml.Node, root *yaml.Node) []*yaml.Node {
 	return result
 }
 
-func (q AbsQuery) Query(node *yaml.Node, root *yaml.Node) []*yaml.Node {
+func (q absQuery) Query(node *yaml.Node, root *yaml.Node) []*yaml.Node {
 	result := []*yaml.Node{root}
-	for _, segment := range q.Segments {
+	for _, segment := range q.segments {
 		var newResult []*yaml.Node
 		for _, value := range result {
 			newResult = append(newResult, segment.Query(value, root)...)

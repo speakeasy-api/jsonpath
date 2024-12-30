@@ -6,210 +6,210 @@ import (
 	"strconv"
 )
 
-func (l Literal) Equals(value Literal) bool {
-	if l.Integer != nil && value.Integer != nil {
-		return *l.Integer == *value.Integer
+func (l literal) Equals(value literal) bool {
+	if l.integer != nil && value.integer != nil {
+		return *l.integer == *value.integer
 	}
-	if l.Float64 != nil && value.Float64 != nil {
-		return *l.Float64 == *value.Float64
+	if l.float64 != nil && value.float64 != nil {
+		return *l.float64 == *value.float64
 	}
-	if l.Integer != nil && value.Float64 != nil {
-		return float64(*l.Integer) == *value.Float64
+	if l.integer != nil && value.float64 != nil {
+		return float64(*l.integer) == *value.float64
 	}
-	if l.Float64 != nil && value.Integer != nil {
-		return *l.Float64 == float64(*value.Integer)
+	if l.float64 != nil && value.integer != nil {
+		return *l.float64 == float64(*value.integer)
 	}
-	if l.String != nil && value.String != nil {
-		return *l.String == *value.String
+	if l.string != nil && value.string != nil {
+		return *l.string == *value.string
 	}
-	if l.Bool != nil && value.Bool != nil {
-		return *l.Bool == *value.Bool
+	if l.bool != nil && value.bool != nil {
+		return *l.bool == *value.bool
 	}
-	if l.Null != nil && value.Null != nil {
-		return *l.Null == *value.Null
-	}
-	return false
-}
-
-func (l Literal) LessThan(value Literal) bool {
-	if l.Integer != nil && value.Integer != nil {
-		return *l.Integer < *value.Integer
-	}
-	if l.Float64 != nil && value.Float64 != nil {
-		return *l.Float64 < *value.Float64
-	}
-	if l.Integer != nil && value.Float64 != nil {
-		return float64(*l.Integer) < *value.Float64
-	}
-	if l.Float64 != nil && value.Integer != nil {
-		return *l.Float64 < float64(*value.Integer)
+	if l.null != nil && value.null != nil {
+		return *l.null == *value.null
 	}
 	return false
 }
 
-func (l Literal) LessThanOrEqual(value Literal) bool {
-	if l.Integer != nil && value.Integer != nil {
-		return *l.Integer <= *value.Integer
+func (l literal) LessThan(value literal) bool {
+	if l.integer != nil && value.integer != nil {
+		return *l.integer < *value.integer
 	}
-	if l.Float64 != nil && value.Float64 != nil {
-		return *l.Float64 <= *value.Float64
+	if l.float64 != nil && value.float64 != nil {
+		return *l.float64 < *value.float64
+	}
+	if l.integer != nil && value.float64 != nil {
+		return float64(*l.integer) < *value.float64
+	}
+	if l.float64 != nil && value.integer != nil {
+		return *l.float64 < float64(*value.integer)
 	}
 	return false
 }
 
-func (c Comparable) Evaluate(node *yaml.Node, root *yaml.Node) Literal {
-	if c.Literal != nil {
-		return *c.Literal
+func (l literal) LessThanOrEqual(value literal) bool {
+	if l.integer != nil && value.integer != nil {
+		return *l.integer <= *value.integer
 	}
-	if c.SingularQuery != nil {
-		return c.SingularQuery.Evaluate(node, root)
+	if l.float64 != nil && value.float64 != nil {
+		return *l.float64 <= *value.float64
 	}
-	if c.FunctionExpr != nil {
-		return c.FunctionExpr.Evaluate(node, root)
-	}
-	return Literal{Null: &[]bool{true}[0]}
+	return false
 }
 
-func (e FunctionExpr) length(node *yaml.Node, root *yaml.Node) Literal {
+func (c comparable) Evaluate(node *yaml.Node, root *yaml.Node) literal {
+	if c.literal != nil {
+		return *c.literal
+	}
+	if c.singularQuery != nil {
+		return c.singularQuery.Evaluate(node, root)
+	}
+	if c.functionExpr != nil {
+		return c.functionExpr.Evaluate(node, root)
+	}
+	return literal{null: &[]bool{true}[0]}
+}
+
+func (e functionExpr) length(node *yaml.Node, root *yaml.Node) literal {
 	switch node.Kind {
 	case yaml.SequenceNode:
 		res := len(node.Content)
-		return Literal{Integer: &res}
+		return literal{integer: &res}
 	case yaml.MappingNode:
 		res := len(node.Content) / 2
-		return Literal{Integer: &res}
+		return literal{integer: &res}
 	case yaml.ScalarNode:
 		res := len(node.Value)
-		return Literal{Integer: &res}
+		return literal{integer: &res}
 	default:
-		return Literal{Null: &[]bool{true}[0]}
+		return literal{null: &[]bool{true}[0]}
 	}
 }
 
-func (e FunctionExpr) count(node *yaml.Node, root *yaml.Node) Literal {
-	args := e.Args[0].FilterQuery.Query(node, root)
+func (e functionExpr) count(node *yaml.Node, root *yaml.Node) literal {
+	args := e.args[0].filterQuery.Query(node, root)
 	//
 	res := len(args)
-	return Literal{Integer: &res}
+	return literal{integer: &res}
 }
 
-func (e FunctionExpr) match(node *yaml.Node, root *yaml.Node) Literal {
+func (e functionExpr) match(node *yaml.Node, root *yaml.Node) literal {
 	if node.Kind != yaml.ScalarNode {
-		return Literal{Bool: &[]bool{false}[0]}
+		return literal{bool: &[]bool{false}[0]}
 	}
-	arg1 := e.Args[0].Evaluate(node, root)
-	arg2 := e.Args[1].Evaluate(node, root)
-	if arg1.String == nil || arg2.String == nil {
-		return Literal{Bool: &[]bool{false}[0]}
+	arg1 := e.args[0].Evaluate(node, root)
+	arg2 := e.args[1].Evaluate(node, root)
+	if arg1.string == nil || arg2.string == nil {
+		return literal{bool: &[]bool{false}[0]}
 	}
-	matched, _ := regexp.MatchString(*arg2.String, *arg1.String)
-	return Literal{Bool: &matched}
+	matched, _ := regexp.MatchString(*arg2.string, *arg1.string)
+	return literal{bool: &matched}
 }
 
-func (e FunctionExpr) search(node *yaml.Node, root *yaml.Node) Literal {
+func (e functionExpr) search(node *yaml.Node, root *yaml.Node) literal {
 	if node.Kind != yaml.ScalarNode {
-		return Literal{Bool: &[]bool{false}[0]}
+		return literal{bool: &[]bool{false}[0]}
 	}
-	arg1 := e.Args[0].Evaluate(node, root)
-	arg2 := e.Args[1].Evaluate(node, root)
-	if arg1.String == nil || arg2.String == nil {
-		return Literal{Bool: &[]bool{false}[0]}
+	arg1 := e.args[0].Evaluate(node, root)
+	arg2 := e.args[1].Evaluate(node, root)
+	if arg1.string == nil || arg2.string == nil {
+		return literal{bool: &[]bool{false}[0]}
 	}
-	matched, _ := regexp.MatchString(*arg2.String, *arg1.String)
-	return Literal{Bool: &matched}
+	matched, _ := regexp.MatchString(*arg2.string, *arg1.string)
+	return literal{bool: &matched}
 }
 
-func (e FunctionExpr) value(node *yaml.Node, root *yaml.Node) Literal {
-	args := e.Args[0].FilterQuery.Query(node, root)
+func (e functionExpr) value(node *yaml.Node, root *yaml.Node) literal {
+	args := e.args[0].filterQuery.Query(node, root)
 	if len(args) == 1 {
 		return nodeToLiteral(args[0])
 	}
-	return Literal{Null: &[]bool{true}[0]}
+	return literal{null: &[]bool{true}[0]}
 }
 
-func nodeToLiteral(node *yaml.Node) Literal {
+func nodeToLiteral(node *yaml.Node) literal {
 	switch node.Tag {
 	case "!!str":
-		return Literal{String: &node.Value}
+		return literal{string: &node.Value}
 	case "!!int":
 		i, _ := strconv.Atoi(node.Value)
-		return Literal{Integer: &i}
+		return literal{integer: &i}
 	case "!!float":
 		f, _ := strconv.ParseFloat(node.Value, 64)
-		return Literal{Float64: &f}
+		return literal{float64: &f}
 	case "!!bool":
 		b, _ := strconv.ParseBool(node.Value)
-		return Literal{Bool: &b}
+		return literal{bool: &b}
 	case "!!null":
 		b := true
-		return Literal{Null: &b}
+		return literal{null: &b}
 	default:
-		return Literal{}
+		return literal{}
 	}
 }
 
-func (e FunctionExpr) Evaluate(node *yaml.Node, root *yaml.Node) Literal {
-	switch e.Type {
-	case FunctionTypeLength:
+func (e functionExpr) Evaluate(node *yaml.Node, root *yaml.Node) literal {
+	switch e.funcType {
+	case functionTypeLength:
 		return e.length(node, root)
-	case FunctionTypeCount:
+	case functionTypeCount:
 		return e.count(node, root)
-	case FunctionTypeMatch:
+	case functionTypeMatch:
 		return e.match(node, root)
-	case FunctionTypeSearch:
+	case functionTypeSearch:
 		return e.search(node, root)
-	case FunctionTypeValue:
+	case functionTypeValue:
 		return e.value(node, root)
 	}
-	return Literal{Null: &[]bool{true}[0]}
+	return literal{null: &[]bool{true}[0]}
 }
 
-func (q SingularQuery) Evaluate(node *yaml.Node, root *yaml.Node) Literal {
-	if q.RelQuery != nil {
-		return q.RelQuery.Evaluate(node, root)
+func (q singularQuery) Evaluate(node *yaml.Node, root *yaml.Node) literal {
+	if q.relQuery != nil {
+		return q.relQuery.Evaluate(node, root)
 	}
-	if q.AbsQuery != nil {
-		return q.AbsQuery.Evaluate(node, root)
+	if q.absQuery != nil {
+		return q.absQuery.Evaluate(node, root)
 	}
-	return Literal{Null: &[]bool{true}[0]}
+	return literal{null: &[]bool{true}[0]}
 }
 
-func (q RelQuery) Evaluate(node *yaml.Node, root *yaml.Node) Literal {
+func (q relQuery) Evaluate(node *yaml.Node, root *yaml.Node) literal {
 	result := q.Query(node, root)
 	if len(result) == 1 {
 		return nodeToLiteral(result[0])
 	}
-	return Literal{Null: &[]bool{true}[0]}
+	return literal{null: &[]bool{true}[0]}
 
 }
 
-func (a FunctionArgument) Evaluate(node *yaml.Node, root *yaml.Node) Literal {
-	if a.Literal != nil {
-		return *a.Literal
+func (a functionArgument) Evaluate(node *yaml.Node, root *yaml.Node) literal {
+	if a.literal != nil {
+		return *a.literal
 	}
-	if a.FilterQuery != nil {
-		result := a.FilterQuery.Query(node, root)
+	if a.filterQuery != nil {
+		result := a.filterQuery.Query(node, root)
 		if len(result) == 1 {
 			return nodeToLiteral(result[0])
 		}
-		return Literal{Null: &[]bool{true}[0]}
+		return literal{null: &[]bool{true}[0]}
 	}
-	if a.LogicalExpr != nil {
-		if a.LogicalExpr.Matches(node, root) {
-			return Literal{Bool: &[]bool{true}[0]}
+	if a.logicalExpr != nil {
+		if a.logicalExpr.Matches(node, root) {
+			return literal{bool: &[]bool{true}[0]}
 		}
-		return Literal{Bool: &[]bool{false}[0]}
+		return literal{bool: &[]bool{false}[0]}
 	}
-	if a.FunctionExpr != nil {
-		return a.FunctionExpr.Evaluate(node, root)
+	if a.functionExpr != nil {
+		return a.functionExpr.Evaluate(node, root)
 	}
-	return Literal{Null: &[]bool{true}[0]}
+	return literal{null: &[]bool{true}[0]}
 }
 
-func (q AbsQuery) Evaluate(node *yaml.Node, root *yaml.Node) Literal {
+func (q absQuery) Evaluate(node *yaml.Node, root *yaml.Node) literal {
 	result := q.Query(root, root)
 	if len(result) == 1 {
 		return nodeToLiteral(result[0])
 	}
-	return Literal{Null: &[]bool{true}[0]}
+	return literal{null: &[]bool{true}[0]}
 }

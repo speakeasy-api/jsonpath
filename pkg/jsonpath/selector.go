@@ -26,7 +26,7 @@ type Selector struct {
 	name   string
 	index  int
 	slice  *Slice
-	filter *FilterSelector
+	filter *filterSelector
 }
 
 func (s Selector) ToString() string {

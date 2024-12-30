@@ -10,74 +10,74 @@ import (
 func TestLiteralEquals(t *testing.T) {
 	testCases := []struct {
 		name     string
-		literal1 Literal
-		literal2 Literal
+		literal1 literal
+		literal2 literal
 		expected bool
 	}{
 		{
 			name:     "Equal integers",
-			literal1: Literal{Integer: intPtr(10)},
-			literal2: Literal{Integer: intPtr(10)},
+			literal1: literal{integer: intPtr(10)},
+			literal2: literal{integer: intPtr(10)},
 			expected: true,
 		},
 		{
 			name:     "Different integers",
-			literal1: Literal{Integer: intPtr(10)},
-			literal2: Literal{Integer: intPtr(20)},
+			literal1: literal{integer: intPtr(10)},
+			literal2: literal{integer: intPtr(20)},
 			expected: false,
 		},
 		{
 			name:     "Equal floats",
-			literal1: Literal{Float64: float64Ptr(3.14)},
-			literal2: Literal{Float64: float64Ptr(3.14)},
+			literal1: literal{float64: float64Ptr(3.14)},
+			literal2: literal{float64: float64Ptr(3.14)},
 			expected: true,
 		},
 		{
 			name:     "Different floats",
-			literal1: Literal{Float64: float64Ptr(3.14)},
-			literal2: Literal{Float64: float64Ptr(2.71)},
+			literal1: literal{float64: float64Ptr(3.14)},
+			literal2: literal{float64: float64Ptr(2.71)},
 			expected: false,
 		},
 		{
 			name:     "Equal strings",
-			literal1: Literal{String: stringPtr("hello")},
-			literal2: Literal{String: stringPtr("hello")},
+			literal1: literal{string: stringPtr("hello")},
+			literal2: literal{string: stringPtr("hello")},
 			expected: true,
 		},
 		{
 			name:     "Different strings",
-			literal1: Literal{String: stringPtr("hello")},
-			literal2: Literal{String: stringPtr("world")},
+			literal1: literal{string: stringPtr("hello")},
+			literal2: literal{string: stringPtr("world")},
 			expected: false,
 		},
 		{
 			name:     "Equal bools",
-			literal1: Literal{Bool: boolPtr(true)},
-			literal2: Literal{Bool: boolPtr(true)},
+			literal1: literal{bool: boolPtr(true)},
+			literal2: literal{bool: boolPtr(true)},
 			expected: true,
 		},
 		{
 			name:     "Different bools",
-			literal1: Literal{Bool: boolPtr(true)},
-			literal2: Literal{Bool: boolPtr(false)},
+			literal1: literal{bool: boolPtr(true)},
+			literal2: literal{bool: boolPtr(false)},
 			expected: false,
 		},
 		{
 			name:     "Equal nulls",
-			literal1: Literal{Null: boolPtr(true)},
-			literal2: Literal{Null: boolPtr(true)},
+			literal1: literal{null: boolPtr(true)},
+			literal2: literal{null: boolPtr(true)},
 			expected: true,
 		},
 		{
 			name:     "Different nulls",
-			literal1: Literal{Null: boolPtr(true)},
-			literal2: Literal{Null: boolPtr(false)},
+			literal1: literal{null: boolPtr(true)},
+			literal2: literal{null: boolPtr(false)},
 			expected: false,
 		},
 		{
 			name:     "Different types",
-			literal1: Literal{Integer: intPtr(10)},
-			literal2: Literal{String: stringPtr("10")},
+			literal1: literal{integer: intPtr(10)},
+			literal2: literal{string: stringPtr("10")},
 			expected: false,
 		},
 	}
@@ -95,38 +95,38 @@ func TestLiteralEquals(t *testing.T) {
 func TestLiteralLessThan(t *testing.T) {
 	testCases := []struct {
 		name     string
-		literal1 Literal
-		literal2 Literal
+		literal1 literal
+		literal2 literal
 		expected bool
 	}{
 		{
-			name:     "Integer less than",
-			literal1: Literal{Integer: intPtr(10)},
-			literal2: Literal{Integer: intPtr(20)},
+			name:     "integer less than",
+			literal1: literal{integer: intPtr(10)},
+			literal2: literal{integer: intPtr(20)},
 			expected: true,
 		},
 		{
-			name:     "Integer not less than",
-			literal1: Literal{Integer: intPtr(20)},
-			literal2: Literal{Integer: intPtr(10)},
+			name:     "integer not less than",
+			literal1: literal{integer: intPtr(20)},
+			literal2: literal{integer: intPtr(10)},
 			expected: false,
 		},
 		{
 			name:     "Float less than",
-			literal1: Literal{Float64: float64Ptr(3.14)},
-			literal2: Literal{Float64: float64Ptr(6.28)},
+			literal1: literal{float64: float64Ptr(3.14)},
+			literal2: literal{float64: float64Ptr(6.28)},
 			expected: true,
 		},
 		{
 			name:     "Float not less than",
-			literal1: Literal{Float64: float64Ptr(6.28)},
-			literal2: Literal{Float64: float64Ptr(3.14)},
+			literal1: literal{float64: float64Ptr(6.28)},
+			literal2: literal{float64: float64Ptr(3.14)},
 			expected: false,
 		},
 		{
 			name:     "Different types",
-			literal1: Literal{Integer: intPtr(10)},
-			literal2: Literal{String: stringPtr("10")},
+			literal1: literal{integer: intPtr(10)},
+			literal2: literal{string: stringPtr("10")},
 			expected: false,
 		},
 	}
@@ -144,50 +144,50 @@ func TestLiteralLessThan(t *testing.T) {
 func TestLiteralLessThanOrEqual(t *testing.T) {
 	testCases := []struct {
 		name     string
-		literal1 Literal
-		literal2 Literal
+		literal1 literal
+		literal2 literal
 		expected bool
 	}{
 		{
-			name:     "Integer less than or equal",
-			literal1: Literal{Integer: intPtr(10)},
-			literal2: Literal{Integer: intPtr(20)},
+			name:     "integer less than or equal",
+			literal1: literal{integer: intPtr(10)},
+			literal2: literal{integer: intPtr(20)},
 			expected: true,
 		},
 		{
-			name:     "Integer equal",
-			literal1: Literal{Integer: intPtr(10)},
-			literal2: Literal{Integer: intPtr(10)},
+			name:     "integer equal",
+			literal1: literal{integer: intPtr(10)},
+			literal2: literal{integer: intPtr(10)},
 			expected: true,
 		},
 		{
-			name:     "Integer not less than or equal",
-			literal1: Literal{Integer: intPtr(20)},
-			literal2: Literal{Integer: intPtr(10)},
+			name:     "integer not less than or equal",
+			literal1: literal{integer: intPtr(20)},
+			literal2: literal{integer: intPtr(10)},
 			expected: false,
 		},
 		{
 			name:     "Float less than or equal",
-			literal1: Literal{Float64: float64Ptr(3.14)},
-			literal2: Literal{Float64: float64Ptr(6.28)},
+			literal1: literal{float64: float64Ptr(3.14)},
+			literal2: literal{float64: float64Ptr(6.28)},
 			expected: true,
 		},
 		{
 			name:     "Float equal",
-			literal1: Literal{Float64: float64Ptr(3.14)},
-			literal2: Literal{Float64: float64Ptr(3.14)},
+			literal1: literal{float64: float64Ptr(3.14)},
+			literal2: literal{float64: float64Ptr(3.14)},
 			expected: true,
 		},
 		{
 			name:     "Float not less than or equal",
-			literal1: Literal{Float64: float64Ptr(6.28)},
-			literal2: Literal{Float64: float64Ptr(3.14)},
+			literal1: literal{float64: float64Ptr(6.28)},
+			literal2: literal{float64: float64Ptr(3.14)},
 			expected: false,
 		},
 		{
 			name:     "Different types",
-			literal1: Literal{Integer: intPtr(10)},
-			literal2: Literal{String: stringPtr("10")},
+			literal1: literal{integer: intPtr(10)},
+			literal2: literal{string: stringPtr("10")},
 			expected: false,
 		},
 	}
@@ -205,31 +205,31 @@ func TestLiteralLessThanOrEqual(t *testing.T) {
 func TestComparableEvaluate(t *testing.T) {
 	testCases := []struct {
 		name       string
-		comparable Comparable
+		comparable comparable
 		node       *yaml.Node
 		root       *yaml.Node
-		expected   Literal
+		expected   literal
 	}{
 		{
-			name:       "Literal",
-			comparable: Comparable{Literal: &Literal{Integer: intPtr(10)}},
+			name:       "literal",
+			comparable: comparable{literal: &literal{integer: intPtr(10)}},
 			node:       yamlNodeFromString("foo"),
 			root:       yamlNodeFromString("foo"),
-			expected:   Literal{Integer: intPtr(10)},
+			expected:   literal{integer: intPtr(10)},
 		},
 		{
-			name:       "SingularQuery",
-			comparable: Comparable{SingularQuery: &SingularQuery{AbsQuery: &AbsQuery{Segments: []*Segment{}}}},
+			name:       "singularQuery",
+			comparable: comparable{singularQuery: &singularQuery{absQuery: &absQuery{segments: []*segment{}}}},
 			node:       yamlNodeFromString("10"),
 			root:       yamlNodeFromString("10"),
-			expected:   Literal{Integer: intPtr(10)},
+			expected:   literal{integer: intPtr(10)},
 		},
 		{
-			name:       "FunctionExpr",
-			comparable: Comparable{FunctionExpr: &FunctionExpr{Type: FunctionTypeLength, Args: []*FunctionArgument{{FilterQuery: &FilterQuery{RelQuery: &RelQuery{Segments: []*Segment{}}}}}}},
+			name:       "functionExpr",
+			comparable: comparable{functionExpr: &functionExpr{funcType: functionTypeLength, args: []*functionArgument{{filterQuery: &filterQuery{relQuery: &relQuery{segments: []*segment{}}}}}}},
 			node:       yamlNodeFromString(`["a", "b", "c"]`),
 			root:       yamlNodeFromString(`["a", "b", "c"]`),
-			expected:   Literal{Integer: intPtr(3)},
+			expected:   literal{integer: intPtr(3)},
 		},
 	}
 
@@ -246,45 +246,45 @@ func TestComparableEvaluate(t *testing.T) {
 func TestFunctionExprEvaluate(t *testing.T) {
 	testCases := []struct {
 		name     string
-		funcExpr FunctionExpr
+		funcExpr functionExpr
 		node     *yaml.Node
 		root     *yaml.Node
-		expected Literal
+		expected literal
 	}{
 		{
 			name:     "Length of scalar",
-			funcExpr: FunctionExpr{Type: FunctionTypeLength},
+			funcExpr: functionExpr{funcType: functionTypeLength},
 			node:     yamlNodeFromString("hello"),
 			root:     yamlNodeFromString("hello"),
-			expected: Literal{Integer: intPtr(5)},
+			expected: literal{integer: intPtr(5)},
 		},
 		{
 			name:     "Length of sequence",
-			funcExpr: FunctionExpr{Type: FunctionTypeLength},
+			funcExpr: functionExpr{funcType: functionTypeLength},
 			node:     yamlNodeFromString(`["a", "b", "c"]`),
 			root:     yamlNodeFromString(`["a", "b", "c"]`),
-			expected: Literal{Integer: intPtr(3)},
+			expected: literal{integer: intPtr(3)},
 		},
 		{
 			name:     "Length of mapping",
-			funcExpr: FunctionExpr{Type: FunctionTypeLength},
+			funcExpr: functionExpr{funcType: functionTypeLength},
 			node:     yamlNodeFromString(`{"a": 1, "b": 2}`),
 			root:     yamlNodeFromString(`{"a": 1, "b": 2}`),
-			expected: Literal{Integer: intPtr(2)},
+			expected: literal{integer: intPtr(2)},
 		},
 		{
 			name:     "Count of nodes",
-			funcExpr: FunctionExpr{Type: FunctionTypeCount, Args: []*FunctionArgument{{FilterQuery: &FilterQuery{RelQuery: &RelQuery{Segments: []*Segment{}}}}}},
+			funcExpr: functionExpr{funcType: functionTypeCount, args: []*functionArgument{{filterQuery: &filterQuery{relQuery: &relQuery{segments: []*segment{}}}}}},
 			node:     yamlNodeFromString(`["a", "b", "c"]`),
 			root:     yamlNodeFromString(`["a", "b", "c"]`),
-			expected: Literal{Integer: intPtr(1)}, // Count of a node list is 1 (unintuitive I know)
+			expected: literal{integer: intPtr(1)}, // Count of a node list is 1 (unintuitive I know)
 		},
 		{
 			name:     "Count of node wildcard",
-			funcExpr: FunctionExpr{Type: FunctionTypeCount, Args: []*FunctionArgument{{FilterQuery: &FilterQuery{RelQuery: &RelQuery{Segments: []*Segment{{Child: &ChildSegment{kind: ChildSegmentDotWildcard}}}}}}}},
+			funcExpr: functionExpr{funcType: functionTypeCount, args: []*functionArgument{{filterQuery: &filterQuery{relQuery: &relQuery{segments: []*segment{{Child: &childSegment{kind: childSegmentDotWildcard}}}}}}}},
 			node:     yamlNodeFromString(`["a", "b", "c"]`),
 			root:     yamlNodeFromString(`["a", "b", "c"]`),
-			expected: Literal{Integer: intPtr(3)}, // Count of a node list is 1 (unintuitive I know)
+			expected: literal{integer: intPtr(3)}, // Count of a node list is 1 (unintuitive I know)
 		},
 		// Add more test cases for match, search, and value functions
 	}
@@ -302,24 +302,24 @@ func TestFunctionExprEvaluate(t *testing.T) {
 func TestSingularQueryEvaluate(t *testing.T) {
 	testCases := []struct {
 		name     string
-		query    SingularQuery
+		query    singularQuery
 		node     *yaml.Node
 		root     *yaml.Node
-		expected Literal
+		expected literal
 	}{
 		{
-			name:     "RelQuery",
-			query:    SingularQuery{RelQuery: &RelQuery{Segments: []*Segment{}}},
+			name:     "relQuery",
+			query:    singularQuery{relQuery: &relQuery{segments: []*segment{}}},
 			node:     yamlNodeFromString("10"),
 			root:     yamlNodeFromString("10"),
-			expected: Literal{Integer: intPtr(10)},
+			expected: literal{integer: intPtr(10)},
 		},
 		{
-			name:     "AbsQuery",
-			query:    SingularQuery{AbsQuery: &AbsQuery{Segments: []*Segment{}}},
+			name:     "absQuery",
+			query:    singularQuery{absQuery: &absQuery{segments: []*segment{}}},
 			node:     yamlNodeFromString("10"),
 			root:     yamlNodeFromString("10"),
-			expected: Literal{Integer: intPtr(10)},
+			expected: literal{integer: intPtr(10)},
 		},
 	}
 
@@ -336,24 +336,24 @@ func TestSingularQueryEvaluate(t *testing.T) {
 func TestRelQueryEvaluate(t *testing.T) {
 	testCases := []struct {
 		name     string
-		query    RelQuery
+		query    relQuery
 		node     *yaml.Node
 		root     *yaml.Node
-		expected Literal
+		expected literal
 	}{
 		{
 			name:     "Single node",
-			query:    RelQuery{Segments: []*Segment{}},
+			query:    relQuery{segments: []*segment{}},
 			node:     yamlNodeFromString("10"),
 			root:     yamlNodeFromString("10"),
-			expected: Literal{Integer: intPtr(10)},
+			expected: literal{integer: intPtr(10)},
 		},
 		{
 			name:     "Child segment",
-			query:    RelQuery{Segments: []*Segment{{Child: &ChildSegment{kind: ChildSegmentDotMemberName, dotName: "foo"}}}},
+			query:    relQuery{segments: []*segment{{Child: &childSegment{kind: childSegmentDotMemberName, dotName: "foo"}}}},
 			node:     yamlNodeFromString(`{"foo": "bar"}`),
 			root:     yamlNodeFromString(`{"foo": "bar"}`),
-			expected: Literal{String: stringPtr("bar")},
+			expected: literal{string: stringPtr("bar")},
 		},
 	}
 
@@ -370,24 +370,24 @@ func TestRelQueryEvaluate(t *testing.T) {
 func TestAbsQueryEvaluate(t *testing.T) {
 	testCases := []struct {
 		name     string
-		query    AbsQuery
+		query    absQuery
 		node     *yaml.Node
 		root     *yaml.Node
-		expected Literal
+		expected literal
 	}{
 		{
 			name:     "Root node",
-			query:    AbsQuery{Segments: []*Segment{}},
+			query:    absQuery{segments: []*segment{}},
 			node:     yamlNodeFromString("10"),
 			root:     yamlNodeFromString("10"),
-			expected: Literal{Integer: intPtr(10)},
+			expected: literal{integer: intPtr(10)},
 		},
 		{
 			name:     "Child segment",
-			query:    AbsQuery{Segments: []*Segment{{Child: &ChildSegment{kind: ChildSegmentDotMemberName, dotName: "foo"}}}},
+			query:    absQuery{segments: []*segment{{Child: &childSegment{kind: childSegmentDotMemberName, dotName: "foo"}}}},
 			node:     yamlNodeFromString(`{"foo": "bar"}`),
 			root:     yamlNodeFromString(`{"foo": "bar"}`),
-			expected: Literal{String: stringPtr("bar")},
+			expected: literal{string: stringPtr("bar")},
 		},
 		// Add more test cases for other segment types
 	}
