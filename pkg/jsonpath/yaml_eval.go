@@ -1,10 +1,12 @@
 package jsonpath
 
 import (
+	"fmt"
 	"gopkg.in/yaml.v3"
 	"reflect"
 	"regexp"
 	"strconv"
+	"unicode/utf8"
 )
 
 func (l literal) Equals(value literal) bool {
@@ -123,7 +125,7 @@ func (e functionExpr) length(node *yaml.Node, root *yaml.Node) literal {
 	//*  If the argument value is a string, the result is the number of
 	//Unicode scalar values in the string.
 	if args.literal != nil && args.literal.string != nil {
-		res := len(*args.literal.string)
+		res := utf8.RuneCountInString(*args.literal.string)
 		return literal{integer: &res}
 	}
 	//*  If the argument value is an array, the result is the number of
@@ -138,10 +140,10 @@ func (e functionExpr) length(node *yaml.Node, root *yaml.Node) literal {
 	if args.literal.node != nil {
 		switch args.literal.node.Kind {
 		case yaml.SequenceNode:
-			res := len(node.Content)
+			res := len(args.literal.node.Content)
 			return literal{integer: &res}
 		case yaml.MappingNode:
-			res := len(node.Content) / 2
+			res := len(args.literal.node.Content) / 2
 			return literal{integer: &res}
 		}
 	}
@@ -149,14 +151,16 @@ func (e functionExpr) length(node *yaml.Node, root *yaml.Node) literal {
 }
 
 func (e functionExpr) count(node *yaml.Node, root *yaml.Node) literal {
+	args := e.args[0].Eval(node, root)
+	if args.kind == functionArgTypeNodes {
+		res := len(args.nodes)
+		return literal{integer: &res}
+	}
+
 	return literal{}
 }
 
 func (e functionExpr) match(node *yaml.Node, root *yaml.Node) literal {
-	if node.Kind != yaml.ScalarNode {
-		return literal{bool: &[]bool{false}[0]}
-	}
-
 	arg1 := e.args[0].Eval(node, root)
 	arg2 := e.args[1].Eval(node, root)
 	if arg1.kind != functionArgTypeLiteral || arg2.kind != functionArgTypeLiteral {
@@ -165,14 +169,11 @@ func (e functionExpr) match(node *yaml.Node, root *yaml.Node) literal {
 	if arg1.literal.string == nil || arg2.literal.string == nil {
 		return literal{bool: &[]bool{false}[0]}
 	}
-	matched, _ := regexp.MatchString(*arg2.literal.string, *arg1.literal.string)
+	matched, _ := regexp.MatchString(fmt.Sprintf("^(%s)$", *arg2.literal.string), *arg1.literal.string)
 	return literal{bool: &matched}
 }
 
 func (e functionExpr) search(node *yaml.Node, root *yaml.Node) literal {
-	if node.Kind != yaml.ScalarNode {
-		return literal{bool: &[]bool{false}[0]}
-	}
 	arg1 := e.args[0].Eval(node, root)
 	arg2 := e.args[1].Eval(node, root)
 	if arg1.kind != functionArgTypeLiteral || arg2.kind != functionArgTypeLiteral {

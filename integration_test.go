@@ -36,9 +36,11 @@ func TestJSONPathComplianceTestSuite(t *testing.T) {
 	for i := 0; i < len(testSuite.Tests); i++ {
 		// if Tags contains "unicode", delete it
 		shouldDelete := slices.Contains(testSuite.Tests[i].Tags, "unicode")
-		// delete new line tests -- these break the yaml parser
+		// delete new line / some unicode tests -- these break the yaml parser
 		shouldDelete = shouldDelete || strings.Contains(testSuite.Tests[i].Name, "line feed")
 		shouldDelete = shouldDelete || strings.Contains(testSuite.Tests[i].Name, "carriage return")
+		shouldDelete = shouldDelete || strings.Contains(testSuite.Tests[i].Name, "u2028")
+		shouldDelete = shouldDelete || strings.Contains(testSuite.Tests[i].Name, "u2029")
 		if shouldDelete {
 			testSuite.Tests = append(testSuite.Tests[:i], testSuite.Tests[i+1:]...)
 			i--
