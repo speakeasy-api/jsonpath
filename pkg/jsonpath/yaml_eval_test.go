@@ -333,7 +333,6 @@ func TestAbsQueryEvaluate(t *testing.T) {
 			root:     yamlNodeFromString(`{"foo": "bar"}`),
 			expected: literal{string: stringPtr("bar")},
 		},
-		// Add more test cases for other segment types
 	}
 
 	for _, tc := range testCases {
