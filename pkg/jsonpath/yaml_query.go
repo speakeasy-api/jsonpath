@@ -131,8 +131,13 @@ func (s Selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 		if value.Kind != yaml.SequenceNode {
 			return nil
 		}
-		if s.index >= len(value.Content) || s.index < 0 {
+		// if out of bounds, return nothing
+		if s.index >= len(value.Content) || s.index < -len(value.Content) {
 			return nil
+		}
+		// if index is negative, go backwards
+		if s.index < 0 {
+			return []*yaml.Node{value.Content[len(value.Content)+s.index]}
 		}
 		return []*yaml.Node{value.Content[s.index]}
 	case SelectorSubKindWildcard:
@@ -153,16 +158,6 @@ func (s Selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 			return nil
 		}
 		start, end, step := 0, len(value.Content), 1
-		if s.slice.Start != nil {
-			start = *s.slice.Start
-		} else {
-			start = 0
-		}
-		if s.slice.End != nil {
-			end = *s.slice.End
-		} else {
-			end = len(value.Content)
-		}
 		if s.slice.Step != nil {
 			step = *s.slice.Step
 		} else {
@@ -171,9 +166,31 @@ func (s Selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 		if step == 0 {
 			return nil
 		}
+		if s.slice.Start != nil {
+			start = *s.slice.Start
+		} else if step < 0 {
+			start = len(value.Content) - 1
+		} else {
+			start = 0
+		}
+		if s.slice.End != nil {
+			end = *s.slice.End
+		} else if step < 0 {
+			end = 0
+		} else {
+			end = len(value.Content)
+		}
+
+		if start < 0 {
+			start = start%len(value.Content) + len(value.Content)
+		}
+		if end < 0 {
+			end = end%len(value.Content) + len(value.Content)
+		}
+
 		var result []*yaml.Node
 		if step < 0 {
-			for i := end - 1; i >= start && i >= 0 && i < len(value.Content); i += step {
+			for i := start; i >= end && i >= 0 && i < len(value.Content); i += step {
 				result = append(result, value.Content[i])
 			}
 		} else {

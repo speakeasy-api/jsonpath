@@ -530,7 +530,10 @@ func (t *Tokenizer) addToken(token Token, len int, literal string) {
 func (t *Tokenizer) scanString(quote rune) {
 	start := t.pos + 1
 	var literal strings.Builder
+illegal:
 	for i := start; i < len(t.input); i++ {
+		b := literal.String()
+		_ = b
 		if t.input[i] == byte(quote) {
 			t.addToken(STRING_LITERAL, len(t.input[start:i])+2, literal.String())
 			t.pos = i
@@ -553,14 +556,27 @@ func (t *Tokenizer) scanString(quote rune) {
 			case 'n':
 				literal.WriteByte('\n')
 			case 'r':
-				literal.WriteByte('\r')
+				literal.WriteByte('\n')
 			case 't':
 				literal.WriteByte('\t')
-			case '\\', '"', '\'':
+			case '\'':
+				if quote != '\'' {
+					// don't escape it, when we're not in a single quoted string
+					break illegal
+				} else {
+					literal.WriteByte(t.input[i])
+				}
+			case '"':
+				if quote != '"' {
+					// don't escape it, when we're not in a single quoted string
+					break illegal
+				} else {
+					literal.WriteByte(t.input[i])
+				}
+			case '\\', '/':
 				literal.WriteByte(t.input[i])
 			default:
-				literal.WriteByte('\\')
-				literal.WriteByte(t.input[i])
+				break illegal
 			}
 		} else {
 			literal.WriteByte(t.input[i])
@@ -611,9 +627,17 @@ func (t *Tokenizer) scanNumber() {
 
 		if !isDigit(t.input[i]) {
 			literal := t.input[start:i]
-			// check for legal numbers (part of conformance spec)
+			// check for legal numbers
+			_, err := strconv.ParseFloat(literal, 64)
+			if err != nil {
+				tokenType = ILLEGAL
+			}
+			// conformance spec
 			if len(literal) > 1 && literal[0] == '0' {
 				// no leading zero
+				tokenType = ILLEGAL
+			} else if len(literal) > 2 && literal[0] == '-' && literal[1] == '0' && !dotSeen {
+				// no trailing dot
 				tokenType = ILLEGAL
 			} else if len(literal) > 0 && literal[len(literal)-1] == '.' {
 				// no trailing dot
@@ -622,6 +646,7 @@ func (t *Tokenizer) scanNumber() {
 				// no exponent
 				tokenType = ILLEGAL
 			}
+
 			t.addToken(tokenType, len(literal), literal)
 			t.pos = i - 1
 			t.column += i - start - 1

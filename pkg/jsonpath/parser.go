@@ -198,11 +198,21 @@ func (p *JSONPath) parseSelector() (retSelector *Selector, err error) {
 		}
 		// else it's an index
 		lit := p.tokens[p.current].Literal
+		// make sure it's not -0
+		if lit == "-0" {
+			return nil, p.parseFailure(&p.tokens[p.current], "-0 unexpected")
+		}
 		// make sure lit is an integer
 		i, err := strconv.ParseInt(lit, 10, 64)
 		if err != nil {
 			return nil, p.parseFailure(&p.tokens[p.current], "expected an integer")
 		}
+		// Make sure it's above integer max
+		const MaxSafeFloat = 9007199254740991
+		if i > MaxSafeFloat || i < -MaxSafeFloat {
+			return nil, p.parseFailure(&p.tokens[p.current], "outside bounds for safe integers")
+		}
+
 		p.current++
 
 		return &Selector{Kind: SelectorSubKindArrayIndex, index: int(i)}, nil
@@ -274,23 +284,10 @@ func (p *JSONPath) parseFilterSelector() (*Selector, error) {
 		return nil, p.parseFailure(&p.tokens[p.current], "expected '?'")
 	}
 	p.current++
-	hasParen := false
-
-	if p.tokens[p.current].Token == token.PAREN_LEFT {
-		hasParen = true
-		p.current++
-	}
 
 	expr, err := p.parseLogicalOrExpr()
 	if err != nil {
 		return nil, err
-	}
-
-	if hasParen {
-		if p.tokens[p.current].Token != token.PAREN_RIGHT {
-			return nil, p.parseFailure(&p.tokens[p.current], "expected ')'")
-		}
-		p.current++
 	}
 
 	return &Selector{Kind: SelectorSubKindFilter, filter: &filterSelector{expr}}, nil
