@@ -157,7 +157,8 @@ func (e functionExpr) count(node *yaml.Node, root *yaml.Node) literal {
 		return literal{integer: &res}
 	}
 
-	return literal{}
+	res := 1
+	return literal{integer: &res}
 }
 
 func (e functionExpr) match(node *yaml.Node, root *yaml.Node) literal {

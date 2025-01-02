@@ -381,12 +381,13 @@ type Tokens []TokenInfo
 
 // Tokenizer represents a JSONPath tokenizer.
 type Tokenizer struct {
-	input  string
-	pos    int
-	line   int
-	column int
-	tokens []TokenInfo
-	stack  []Token
+	input             string
+	pos               int
+	line              int
+	column            int
+	tokens            []TokenInfo
+	stack             []Token
+	illegalWhitespace bool
 }
 
 // NewTokenizer creates a new JSONPath tokenizer for the given input string.
@@ -401,7 +402,9 @@ func NewTokenizer(input string) *Tokenizer {
 // Tokenize tokenizes the input string and returns a slice of TokenInfo.
 func (t *Tokenizer) Tokenize() Tokens {
 	for t.pos < len(t.input) {
-		t.skipWhitespace()
+		if !t.illegalWhitespace {
+			t.skipWhitespace()
+		}
 		if t.pos >= len(t.input) {
 			break
 		}
@@ -418,8 +421,10 @@ func (t *Tokenizer) Tokenize() Tokens {
 				t.addToken(RECURSIVE, 2, "")
 				t.pos++
 				t.column++
+				t.illegalWhitespace = true
 			} else {
 				t.addToken(CHILD, 1, "")
+				t.illegalWhitespace = true
 			}
 		case ch == ',':
 			t.addToken(COMMA, 1, "")
@@ -525,6 +530,7 @@ func (t *Tokenizer) addToken(token Token, len int, literal string) {
 		Len:     len,
 		Literal: literal,
 	})
+	t.illegalWhitespace = false
 }
 
 func (t *Tokenizer) scanString(quote rune) {
@@ -680,8 +686,9 @@ func (t *Tokenizer) scanLiteral() {
 			case "null":
 				t.addToken(NULL, len(literal), literal)
 			default:
-				if t.input[i] == '(' && isFunctionName(literal) {
+				if isFunctionName(literal) {
 					t.addToken(FUNCTION, len(literal), literal)
+					t.illegalWhitespace = true
 				} else {
 					t.addToken(STRING, len(literal), literal)
 				}
