@@ -281,7 +281,7 @@ func TestFunctionExprEvaluate(t *testing.T) {
 		},
 		{
 			name:     "Count of node wildcard",
-			funcExpr: functionExpr{funcType: functionTypeCount, args: []*functionArgument{{filterQuery: &filterQuery{relQuery: &relQuery{segments: []*segment{{Child: &childSegment{kind: childSegmentDotWildcard}}}}}}}},
+			funcExpr: functionExpr{funcType: functionTypeCount, args: []*functionArgument{{filterQuery: &filterQuery{relQuery: &relQuery{segments: []*segment{{Child: &innerSegment{kind: segmentDotWildcard}}}}}}}},
 			node:     yamlNodeFromString(`["a", "b", "c"]`),
 			root:     yamlNodeFromString(`["a", "b", "c"]`),
 			expected: literal{integer: intPtr(3)}, // Count of a node list is 1 (unintuitive I know)
@@ -350,7 +350,7 @@ func TestRelQueryEvaluate(t *testing.T) {
 		},
 		{
 			name:     "Child segment",
-			query:    relQuery{segments: []*segment{{Child: &childSegment{kind: childSegmentDotMemberName, dotName: "foo"}}}},
+			query:    relQuery{segments: []*segment{{Child: &innerSegment{kind: segmentDotMemberName, dotName: "foo"}}}},
 			node:     yamlNodeFromString(`{"foo": "bar"}`),
 			root:     yamlNodeFromString(`{"foo": "bar"}`),
 			expected: literal{string: stringPtr("bar")},
@@ -384,7 +384,7 @@ func TestAbsQueryEvaluate(t *testing.T) {
 		},
 		{
 			name:     "Child segment",
-			query:    absQuery{segments: []*segment{{Child: &childSegment{kind: childSegmentDotMemberName, dotName: "foo"}}}},
+			query:    absQuery{segments: []*segment{{Child: &innerSegment{kind: segmentDotMemberName, dotName: "foo"}}}},
 			node:     yamlNodeFromString(`{"foo": "bar"}`),
 			root:     yamlNodeFromString(`{"foo": "bar"}`),
 			expected: literal{string: stringPtr("bar")},

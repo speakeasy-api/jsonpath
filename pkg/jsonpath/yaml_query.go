@@ -33,27 +33,38 @@ func (s segment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 	if s.Child != nil {
 		return s.Child.Query(value, root)
 	} else if s.Descendant != nil {
-		return s.Descendant.Query(value, root)
+		// run the inner segment against this node
+		var result = []*yaml.Node{}
+		children := descend(value, root)
+		for _, child := range children {
+			result = append(result, s.Descendant.Query(child, root)...)
+		}
+		// make children unique by pointer value
+		result = unique(result)
+		return result
 	} else {
 		panic("no segment type")
 	}
 }
 
-func (s descendantSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
-	// run the inner segment against this node
-	result := s.innerSegment.Query(value, root)
-	children := descend(value, root)
-	for _, child := range children {
-		result = append(result, s.innerSegment.Query(child, root)...)
+func unique(nodes []*yaml.Node) []*yaml.Node {
+	// stably returns a new slice containing only the unique elements from nodes
+	res := make([]*yaml.Node, 0)
+	seen := make(map[*yaml.Node]bool)
+	for _, node := range nodes {
+		if _, ok := seen[node]; !ok {
+			res = append(res, node)
+			seen[node] = true
+		}
 	}
-	return result
+	return res
 }
 
-func (s childSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
+func (s innerSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 	result := []*yaml.Node{}
 
 	switch s.kind {
-	case childSegmentDotWildcard:
+	case segmentDotWildcard:
 		// Handle wildcard - get all children
 		switch value.Kind {
 		case yaml.MappingNode:
@@ -70,7 +81,7 @@ func (s childSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 			}
 		}
 		return result
-	case childSegmentDotMemberName:
+	case segmentDotMemberName:
 		// Handle member access
 		if value.Kind == yaml.MappingNode {
 			// In YAML mapping nodes, keys and values alternate
@@ -86,7 +97,7 @@ func (s childSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 			}
 		}
 
-	case childSegmentLongHand:
+	case segmentLongHand:
 		// Handle long hand selectors
 		for _, selector := range s.selectors {
 			result = append(result, selector.Query(value, root)...)
@@ -125,8 +136,16 @@ func (s Selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 		}
 		return []*yaml.Node{value.Content[s.index]}
 	case SelectorSubKindWildcard:
-		if value.Kind == yaml.MappingNode || value.Kind == yaml.SequenceNode {
+		if value.Kind == yaml.SequenceNode {
 			return value.Content
+		} else if value.Kind == yaml.MappingNode {
+			var result []*yaml.Node
+			for i, child := range value.Content {
+				if i%2 == 1 {
+					result = append(result, child)
+				}
+			}
+			return result
 		}
 		return nil
 	case SelectorSubKindArraySlice:

@@ -277,8 +277,17 @@ func (tok Tokens) IsSimple() bool {
 }
 
 // When there's an error in the tokenizer, this helps represent it.
-func (t Tokenizer) ErrorString(target TokenInfo, msg string) string {
+func (t Tokenizer) ErrorString(target *TokenInfo, msg string) string {
 	var errorBuilder strings.Builder
+
+	var token TokenInfo
+	if target == nil {
+		// grab last token (as value)
+		token = t.tokens[len(t.tokens)-1]
+		// set column to +1
+		token.Column++
+		target = &token
+	}
 
 	// Write the error message with line and column information
 	errorBuilder.WriteString(fmt.Sprintf("Error at line %d, column %d: %s\n", target.Line, target.Column, msg))
@@ -313,9 +322,16 @@ func (t Tokenizer) ErrorString(target TokenInfo, msg string) string {
 }
 
 // When there's an error
-func (t Tokenizer) ErrorTokenString(target TokenInfo, msg string) string {
+func (t Tokenizer) ErrorTokenString(target *TokenInfo, msg string) string {
 	var errorBuilder strings.Builder
-
+	var token TokenInfo
+	if target == nil {
+		// grab last token (as value)
+		token = t.tokens[len(t.tokens)-1]
+		// set column to +1
+		token.Column++
+		target = &token
+	}
 	// Write the error message with line and column information
 	errorBuilder.WriteString(t.ErrorString(target, msg))
 

@@ -30,7 +30,7 @@ func (p *JSONPath) parse() error {
 	}
 
 	if p.tokens[p.current].Token != token.ROOT {
-		return p.parseFailure(p.tokens[p.current], "expected '$'")
+		return p.parseFailure(&p.tokens[p.current], "expected '$'")
 	}
 	p.current++
 
@@ -44,53 +44,13 @@ func (p *JSONPath) parse() error {
 	return nil
 }
 
-// parseDescendantSegment parses a descendant segment (preceded by "..").
-func (p *JSONPath) parseDescendantSegment() (*descendantSegment, error) {
-	if p.tokens[p.current].Token != token.RECURSIVE {
-		return nil, p.parseFailure(p.tokens[p.current], "expected '..'")
-	}
-
-	// three kinds of descendant segments
-	// "..*" -> recursive wildcard
-	// "..STRING" -> recursive hunt for an identifier
-	// "..[INNER_SEGMENT]" -> recursive hunt for some inner expression (e.g. a filter expression)
-	if p.peek(token.WILDCARD) {
-		node := &descendantSegment{subKind: descendantSegmentSubKindWildcard}
-		p.current += 2
-		return node, nil
-	} else if p.peek(token.STRING) {
-		node := &descendantSegment{subKind: descendantSegmentSubKindDotName}
-		p.current += 2
-		return node, nil
-	} else if p.peek(token.BRACKET_LEFT) {
-		node := &descendantSegment{subKind: descendantSegmentSubKindLongHand}
-		previousCurrent := p.current
-		p.current += 2
-		innerSegment, err := p.parseSegment()
-		node.innerSegment = innerSegment
-		if err != nil {
-			p.current = previousCurrent
-			return nil, err
-		}
-
-		if p.tokens[p.current].Token != token.BRACKET_RIGHT {
-			p.current = previousCurrent
-			return nil, p.parseFailure(p.tokens[p.current], "expected ']'")
-		}
-		p.current += 1
-		return node, nil
-	}
-
-	return nil, p.parseFailure(p.tokens[p.current], "unexpected descendant segment")
-}
-
-func (p *JSONPath) parseFailure(target token.TokenInfo, msg string) error {
+func (p *JSONPath) parseFailure(target *token.TokenInfo, msg string) error {
 	return errors.New(p.tokenizer.ErrorTokenString(target, msg))
 }
 
 // peek returns true if the upcoming token matches the given token type.
 func (p *JSONPath) peek(token token.Token) bool {
-	return p.current < len(p.tokens) && p.tokens[p.current+1].Token == token
+	return p.current+1 < len(p.tokens) && p.tokens[p.current+1].Token == token
 }
 
 // expect consumes the current token if it matches the given token type.
@@ -110,38 +70,51 @@ func (p *JSONPath) isComparisonOperator(tok token.Token) bool {
 func (p *JSONPath) parseSegment() (*segment, error) {
 	currentToken := p.tokens[p.current]
 	if currentToken.Token == token.RECURSIVE {
-		node, err := p.parseDescendantSegment()
+		p.current++
+		child, err := p.parseInnerSegment()
 		if err != nil {
 			return nil, err
 		}
-		return &segment{Descendant: node}, nil
+		return &segment{Descendant: child}, nil
+	} else if currentToken.Token == token.CHILD || currentToken.Token == token.BRACKET_LEFT {
+		if currentToken.Token == token.CHILD {
+			p.current++
+		}
+		child, err := p.parseInnerSegment()
+		if err != nil {
+			return nil, err
+		}
+		return &segment{Child: child}, nil
 	}
-	return p.parseChildSegment()
+	return nil, p.parseFailure(&currentToken, "unexpected token when parsing segment")
 }
 
-func (p *JSONPath) parseChildSegment() (*segment, error) {
+func (p *JSONPath) parseInnerSegment() (*innerSegment, error) {
 	// .*
 	// .STRING
 	// []
+	if p.current >= len(p.tokens) {
+		return nil, p.parseFailure(nil, "unexpected end of input")
+	}
 	firstToken := p.tokens[p.current]
-	if firstToken.Token == token.CHILD && p.peek(token.WILDCARD) {
-		p.current += 2
-		return &segment{&childSegment{childSegmentDotWildcard, "", nil}, nil}, nil
-	} else if firstToken.Token == token.CHILD && p.peek(token.STRING) {
-		dotName := p.tokens[p.current+1].Literal
-		p.current += 2
-		return &segment{&childSegment{childSegmentDotMemberName, dotName, nil}, nil}, nil
+	if firstToken.Token == token.WILDCARD {
+		p.current += 1
+		return &innerSegment{segmentDotWildcard, "", nil}, nil
+	} else if firstToken.Token == token.STRING {
+		dotName := p.tokens[p.current].Literal
+		p.current += 1
+		return &innerSegment{segmentDotMemberName, dotName, nil}, nil
 	} else if firstToken.Token == token.BRACKET_LEFT {
 		prior := p.current
 		p.current += 1
 		selectors := []*Selector{}
 		for p.current < len(p.tokens) {
-			innerSegment, err := p.parseSelector()
+			innerSelector, err := p.parseSelector()
 			if err != nil {
 				p.current = prior
 				return nil, err
 			}
-			selectors = append(selectors, innerSegment)
+			selectors = append(selectors, innerSelector)
 			if p.tokens[p.current].Token == token.BRACKET_RIGHT {
 				break
 			} else if p.tokens[p.current].Token == token.COMMA {
@@ -150,12 +123,12 @@ func (p *JSONPath) parseChildSegment() (*segment, error) {
 		}
 		if p.tokens[p.current].Token != token.BRACKET_RIGHT {
 			prior = p.current
-			return nil, p.parseFailure(p.tokens[p.current], "expected ']'")
+			return nil, p.parseFailure(&p.tokens[p.current], "expected ']'")
 		}
 		p.current += 1
-		return &segment{&childSegment{kind: childSegmentLongHand, dotName: "", selectors: selectors}, nil}, nil
+		return &innerSegment{kind: segmentLongHand, dotName: "", selectors: selectors}, nil
 	}
-	return nil, p.parseFailure(firstToken, "unexpected token when parsing child segment")
+	return nil, p.parseFailure(&firstToken, "unexpected token when parsing inner segment")
 }
 
 func (p *JSONPath) parseSelector() (*Selector, error) {
@@ -183,12 +156,16 @@ func (p *JSONPath) parseSelector() (*Selector, error) {
 			}
 			return &Selector{Kind: SelectorSubKindArraySlice, slice: slice}, nil
 		}
+		// peek ahead to see if we close the array index properly
+		if !p.peek(token.BRACKET_RIGHT) && !p.peek(token.COMMA) {
+			return nil, p.parseFailure(&p.tokens[p.current], "expected ']' or ','")
+		}
 		// else it's an index
 		lit := p.tokens[p.current].Literal
 		// make sure lit is an integer
 		i, err := strconv.ParseInt(lit, 10, 64)
 		if err != nil {
-			return nil, p.parseFailure(p.tokens[p.current], "expected an integer")
+			return nil, p.parseFailure(&p.tokens[p.current], "expected an integer")
 		}
 		p.current++
 
@@ -203,7 +180,7 @@ func (p *JSONPath) parseSelector() (*Selector, error) {
 		return p.parseFilterSelector()
 	}
 
-	return nil, p.parseFailure(p.tokens[p.current], "unexpected token when parsing selector")
+	return nil, p.parseFailure(&p.tokens[p.current], "unexpected token when parsing selector")
 }
 
 func (p *JSONPath) parseSliceSelector() (*Slice, error) {
@@ -215,7 +192,7 @@ func (p *JSONPath) parseSliceSelector() (*Slice, error) {
 		literal := p.tokens[p.current].Literal
 		i, err := strconv.Atoi(literal)
 		if err != nil {
-			return nil, p.parseFailure(p.tokens[p.current], "expected an integer")
+			return nil, p.parseFailure(&p.tokens[p.current], "expected an integer")
 		}
 		start = &i
 		p.current += 1
@@ -223,7 +200,7 @@ func (p *JSONPath) parseSliceSelector() (*Slice, error) {
 
 	// Expect a colon
 	if p.tokens[p.current].Token != token.ARRAY_SLICE {
-		return nil, p.parseFailure(p.tokens[p.current], "expected ':'")
+		return nil, p.parseFailure(&p.tokens[p.current], "expected ':'")
 	}
 	p.current++
 
@@ -232,7 +209,7 @@ func (p *JSONPath) parseSliceSelector() (*Slice, error) {
 		literal := p.tokens[p.current].Literal
 		i, err := strconv.Atoi(literal)
 		if err != nil {
-			return nil, p.parseFailure(p.tokens[p.current], "expected an integer")
+			return nil, p.parseFailure(&p.tokens[p.current], "expected an integer")
 		}
 		end = &i
 		p.current++
@@ -245,7 +222,7 @@ func (p *JSONPath) parseSliceSelector() (*Slice, error) {
 			literal := p.tokens[p.current].Literal
 			i, err := strconv.Atoi(literal)
 			if err != nil {
-				return nil, p.parseFailure(p.tokens[p.current], "expected an integer")
+				return nil, p.parseFailure(&p.tokens[p.current], "expected an integer")
 			}
 			step = &i
 			p.current++
@@ -257,12 +234,12 @@ func (p *JSONPath) parseSliceSelector() (*Slice, error) {
 
 func (p *JSONPath) parseFilterSelector() (*Selector, error) {
 	if p.tokens[p.current].Token != token.FILTER {
-		return nil, p.parseFailure(p.tokens[p.current], "expected '?'")
+		return nil, p.parseFailure(&p.tokens[p.current], "expected '?'")
 	}
 	p.current++
 
 	if p.tokens[p.current].Token != token.PAREN_LEFT {
-		return nil, p.parseFailure(p.tokens[p.current], "expected '('")
+		return nil, p.parseFailure(&p.tokens[p.current], "expected '('")
 	}
 	p.current++
 
@@ -272,7 +249,7 @@ func (p *JSONPath) parseFilterSelector() (*Selector, error) {
 	}
 
 	if p.tokens[p.current].Token != token.PAREN_RIGHT {
-		return nil, p.parseFailure(p.tokens[p.current], "expected ')'")
+		return nil, p.parseFailure(&p.tokens[p.current], "expected ')'")
 	}
 	p.current++
 
@@ -332,12 +309,12 @@ func (p *JSONPath) parseBasicExpr() (*basicExpr, error) {
 				return nil, err
 			}
 			if p.tokens[p.current].Token != token.PAREN_RIGHT {
-				return nil, p.parseFailure(p.tokens[p.current], "expected ')'")
+				return nil, p.parseFailure(&p.tokens[p.current], "expected ')'")
 			}
 			p.current++
 			return &basicExpr{parenExpr: &parenExpr{not: true, expr: expr}}, nil
 		}
-		return nil, p.parseFailure(p.tokens[p.current], "expected '(' after '!'")
+		return nil, p.parseFailure(&p.tokens[p.current], "expected '(' after '!'")
 	case token.PAREN_LEFT:
 		p.current++
 		expr, err := p.parseLogicalOrExpr()
@@ -345,7 +322,7 @@ func (p *JSONPath) parseBasicExpr() (*basicExpr, error) {
 			return nil, err
 		}
 		if p.tokens[p.current].Token != token.PAREN_RIGHT {
-			return nil, p.parseFailure(p.tokens[p.current], "expected ')'")
+			return nil, p.parseFailure(&p.tokens[p.current], "expected ')'")
 		}
 		p.current++
 		return &basicExpr{parenExpr: &parenExpr{not: false, expr: expr}}, nil
@@ -361,7 +338,7 @@ func (p *JSONPath) parseBasicExpr() (*basicExpr, error) {
 		return &basicExpr{testExpr: testExpr}, nil
 	}
 	p.current = prevCurrent
-	return nil, p.parseFailure(p.tokens[p.current], fmt.Sprintf("could not parse query: expected either testExpr [err: %s] or comparisonExpr: [err: %s]", testErr.Error(), comparisonErr.Error()))
+	return nil, p.parseFailure(&p.tokens[p.current], fmt.Sprintf("could not parse query: expected either testExpr [err: %s] or comparisonExpr: [err: %s]", testErr.Error(), comparisonErr.Error()))
 }
 
 func (p *JSONPath) parseComparisonExpr() (*comparisonExpr, error) {
@@ -371,7 +348,7 @@ func (p *JSONPath) parseComparisonExpr() (*comparisonExpr, error) {
 	}
 
 	if !p.isComparisonOperator(p.tokens[p.current].Token) {
-		return nil, p.parseFailure(p.tokens[p.current], "expected comparison operator")
+		return nil, p.parseFailure(&p.tokens[p.current], "expected comparison operator")
 	}
 	operator := p.tokens[p.current].Token
 	var op comparisonOperator
@@ -389,7 +366,7 @@ func (p *JSONPath) parseComparisonExpr() (*comparisonExpr, error) {
 	case token.GE:
 		op = greaterThanEqualTo
 	default:
-		return nil, p.parseFailure(p.tokens[p.current], "expected comparison operator")
+		return nil, p.parseFailure(&p.tokens[p.current], "expected comparison operator")
 	}
 	p.current++
 
@@ -427,7 +404,7 @@ func (p *JSONPath) parseComparable() (*comparable, error) {
 		}
 		return &comparable{singularQuery: &singularQuery{relQuery: &relQuery{segments: query.segments}}}, nil
 	default:
-		return nil, p.parseFailure(p.tokens[p.current], "expected literal or query")
+		return nil, p.parseFailure(&p.tokens[p.current], "expected literal or query")
 	}
 }
 
@@ -478,13 +455,13 @@ func (p *JSONPath) parseTestExpr() (*testExpr, error) {
 		return &testExpr{functionExpr: funcExpr, not: not}, nil
 	}
 
-	return nil, p.parseFailure(p.tokens[p.current], "unexpected token when parsing test expression")
+	return nil, p.parseFailure(&p.tokens[p.current], "unexpected token when parsing test expression")
 }
 
 func (p *JSONPath) parseFunctionExpr() (*functionExpr, error) {
 	functionName := p.tokens[p.current].Literal
 	if p.tokens[p.current+1].Token != token.PAREN_LEFT {
-		return nil, p.parseFailure(p.tokens[p.current+1], "expected '('")
+		return nil, p.parseFailure(&p.tokens[p.current+1], "expected '('")
 	}
 	p.current += 2
 	args := []*functionArgument{}
@@ -500,7 +477,7 @@ func (p *JSONPath) parseFunctionExpr() (*functionExpr, error) {
 		p.current++
 	}
 	if p.tokens[p.current].Token != token.PAREN_RIGHT {
-		return nil, p.parseFailure(p.tokens[p.current], "expected ')'")
+		return nil, p.parseFailure(&p.tokens[p.current], "expected ')'")
 	}
 	p.current++
 	return &functionExpr{funcType: functionTypeMap[functionName], args: args}, nil
@@ -557,7 +534,7 @@ func (p *JSONPath) parseFunctionArgument() (*functionArgument, error) {
 		return &functionArgument{filterQuery: &filterQuery{jsonPathQuery: &jsonPathAST{segments: query.segments}}}, nil
 	}
 
-	return nil, p.parseFailure(p.tokens[p.current], "unexpected token for function argument")
+	return nil, p.parseFailure(&p.tokens[p.current], "unexpected token for function argument")
 }
 
 func (p *JSONPath) parseLiteral() (*literal, error) {
@@ -571,7 +548,7 @@ func (p *JSONPath) parseLiteral() (*literal, error) {
 		p.current++
 		i, err := strconv.Atoi(lit)
 		if err != nil {
-			return nil, p.parseFailure(p.tokens[p.current], "expected integer")
+			return nil, p.parseFailure(&p.tokens[p.current], "expected integer")
 		}
 		return &literal{integer: &i}, nil
 	case token.FLOAT:
@@ -579,7 +556,7 @@ func (p *JSONPath) parseLiteral() (*literal, error) {
 		p.current++
 		f, err := strconv.ParseFloat(lit, 64)
 		if err != nil {
-			return nil, p.parseFailure(p.tokens[p.current], "expected float")
+			return nil, p.parseFailure(&p.tokens[p.current], "expected float")
 		}
 		return &literal{float64: &f}, nil
 	case token.TRUE:
@@ -595,7 +572,7 @@ func (p *JSONPath) parseLiteral() (*literal, error) {
 		res := true
 		return &literal{null: &res}, nil
 	}
-	return nil, p.parseFailure(p.tokens[p.current], "expected literal")
+	return nil, p.parseFailure(&p.tokens[p.current], "expected literal")
 }
 
 type jsonPathAST struct {

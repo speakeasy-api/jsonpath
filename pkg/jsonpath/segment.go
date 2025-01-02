@@ -6,48 +6,48 @@ import (
 )
 
 type segment struct {
-	Child      *childSegment
-	Descendant *descendantSegment
+	Child      *innerSegment
+	Descendant *innerSegment
 }
 
-type childSegmentSubKind int
+type segmentSubKind int
 
 const (
-	childSegmentDotWildcard   childSegmentSubKind = iota // .*
-	childSegmentDotMemberName                            // .property
-	childSegmentLongHand                                 // [ Selector[] ]
+	segmentDotWildcard   segmentSubKind = iota // .*
+	segmentDotMemberName                       // .property
+	segmentLongHand                            // [ Selector[] ]
 )
 
 func (s segment) ToString() string {
 	if s.Child != nil {
-		return s.Child.ToString()
+		if s.Child.kind != segmentLongHand {
+			return "." + s.Child.ToString()
+		} else {
+			return s.Child.ToString()
+		}
 	} else if s.Descendant != nil {
-		return s.Descendant.ToString()
+		return ".." + s.Descendant.ToString()
 	} else {
 		panic("no segment")
 	}
-
 }
 
-type segmentKind int
-
-type childSegment struct {
-	kind      childSegmentSubKind
+type innerSegment struct {
+	kind      segmentSubKind
 	dotName   string
 	selectors []*Selector
 }
 
-func (s childSegment) ToString() string {
+func (s innerSegment) ToString() string {
 	builder := strings.Builder{}
 	switch s.kind {
-	case childSegmentDotWildcard:
-		builder.WriteString(".*")
+	case segmentDotWildcard:
+		builder.WriteString("*")
 		break
-	case childSegmentDotMemberName:
-		builder.WriteString(".")
+	case segmentDotMemberName:
 		builder.WriteString(s.dotName)
 		break
-	case childSegmentLongHand:
+	case segmentLongHand:
 		builder.WriteString("[")
 		for i, selector := range s.selectors {
 			builder.WriteString(selector.ToString())
@@ -60,26 +60,6 @@ func (s childSegment) ToString() string {
 	default:
 		panic("unknown child segment kind")
 	}
-	return builder.String()
-}
-
-type descendantSegmentSubKind int
-
-const (
-	descendantSegmentSubKindWildcard descendantSegmentSubKind = iota
-	descendantSegmentSubKindDotName
-	descendantSegmentSubKindLongHand
-)
-
-type descendantSegment struct {
-	subKind      descendantSegmentSubKind
-	innerSegment *segment
-}
-
-func (s descendantSegment) ToString() string {
-	builder := strings.Builder{}
-	builder.WriteString("..")
-	builder.WriteString(s.innerSegment.ToString())
 	return builder.String()
 }
 
