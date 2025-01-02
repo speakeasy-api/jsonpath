@@ -444,6 +444,11 @@ func (p *JSONPath) parseComparable() (*comparable, error) {
 		return &comparable{literal: literal}, nil
 	}
 	if funcExpr, err := p.parseFunctionExpr(); err == nil {
+		if funcExpr.funcType == functionTypeMatch {
+			return nil, p.parseFailure(&p.tokens[p.current], "match result cannot be compared")
+		} else if funcExpr.funcType == functionTypeSearch {
+			return nil, p.parseFailure(&p.tokens[p.current], "search result cannot be compared")
+		}
 		return &comparable{functionExpr: funcExpr}, nil
 	}
 	switch p.tokens[p.current].Token {
@@ -515,6 +520,15 @@ func (p *JSONPath) parseTestExpr() (*testExpr, error) {
 		if err != nil {
 			return nil, err
 		}
+		if funcExpr.funcType == functionTypeCount {
+			return nil, p.parseFailure(&p.tokens[p.current], "count function must be compared")
+		}
+		if funcExpr.funcType == functionTypeLength {
+			return nil, p.parseFailure(&p.tokens[p.current], "length function must be compared")
+		}
+		if funcExpr.funcType == functionTypeValue {
+			return nil, p.parseFailure(&p.tokens[p.current], "length function must be compared")
+		}
 		return &testExpr{functionExpr: funcExpr, not: not}, nil
 	}
 
@@ -530,11 +544,18 @@ func (p *JSONPath) parseFunctionExpr() (*functionExpr, error) {
 	args := []*functionArgument{}
 	switch functionTypeMap[functionName] {
 	case functionTypeLength:
-		fallthrough
-	case functionTypeCount:
 		arg, err := p.parseFunctionArgument(true)
 		if err != nil {
 			return nil, err
+		}
+		args = append(args, arg)
+	case functionTypeCount:
+		arg, err := p.parseFunctionArgument(false)
+		if err != nil {
+			return nil, err
+		}
+		if arg.literal != nil && arg.literal.node == nil {
+			return nil, p.parseFailure(&p.tokens[p.current], "count function only supports containers")
 		}
 		args = append(args, arg)
 	case functionTypeValue:
