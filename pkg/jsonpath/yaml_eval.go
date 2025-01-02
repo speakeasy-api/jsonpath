@@ -28,7 +28,45 @@ func (l literal) Equals(value literal) bool {
 	if l.null != nil && value.null != nil {
 		return *l.null == *value.null
 	}
+	if l.node != nil && value.node != nil {
+		return equalsNode(l.node, value.node)
+	}
 	return false
+}
+
+func equalsNode(a *yaml.Node, b *yaml.Node) bool {
+	// decode into interfaces, then compare
+	if a.Tag != b.Tag {
+		return false
+	}
+	switch a.Tag {
+	case "!!str":
+		return a.Value == b.Value
+	case "!!int":
+		return a.Value == b.Value
+	case "!!float":
+		return a.Value == b.Value
+	case "!!bool":
+		return a.Value == b.Value
+	case "!!null":
+		return a.Value == b.Value
+	case "!!seq":
+		for i := 0; i < len(a.Content); i++ {
+			if !equalsNode(a.Content[i], b.Content[i]) {
+				return false
+			}
+		}
+	case "!!map":
+		for i := 0; i < len(a.Content); i += 2 {
+			if !equalsNode(a.Content[i], b.Content[i]) {
+				return false
+			}
+			if !equalsNode(a.Content[i+1], b.Content[i+1]) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func (l literal) LessThan(value literal) bool {
@@ -67,7 +105,7 @@ func (c comparable) Evaluate(node *yaml.Node, root *yaml.Node) literal {
 	if c.functionExpr != nil {
 		return c.functionExpr.Evaluate(node, root)
 	}
-	return literal{null: &[]bool{true}[0]}
+	return literal{}
 }
 
 func (e functionExpr) length(node *yaml.Node, root *yaml.Node) literal {
@@ -82,7 +120,7 @@ func (e functionExpr) length(node *yaml.Node, root *yaml.Node) literal {
 		res := len(node.Value)
 		return literal{integer: &res}
 	default:
-		return literal{null: &[]bool{true}[0]}
+		return literal{}
 	}
 }
 
@@ -124,7 +162,7 @@ func (e functionExpr) value(node *yaml.Node, root *yaml.Node) literal {
 	if len(args) == 1 {
 		return nodeToLiteral(args[0])
 	}
-	return literal{null: &[]bool{true}[0]}
+	return literal{}
 }
 
 func nodeToLiteral(node *yaml.Node) literal {
@@ -144,7 +182,7 @@ func nodeToLiteral(node *yaml.Node) literal {
 		b := true
 		return literal{null: &b}
 	default:
-		return literal{}
+		return literal{node: node}
 	}
 }
 
@@ -161,7 +199,7 @@ func (e functionExpr) Evaluate(node *yaml.Node, root *yaml.Node) literal {
 	case functionTypeValue:
 		return e.value(node, root)
 	}
-	return literal{null: &[]bool{true}[0]}
+	return literal{}
 }
 
 func (q singularQuery) Evaluate(node *yaml.Node, root *yaml.Node) literal {
@@ -171,7 +209,7 @@ func (q singularQuery) Evaluate(node *yaml.Node, root *yaml.Node) literal {
 	if q.absQuery != nil {
 		return q.absQuery.Evaluate(node, root)
 	}
-	return literal{null: &[]bool{true}[0]}
+	return literal{}
 }
 
 func (q relQuery) Evaluate(node *yaml.Node, root *yaml.Node) literal {
@@ -179,7 +217,7 @@ func (q relQuery) Evaluate(node *yaml.Node, root *yaml.Node) literal {
 	if len(result) == 1 {
 		return nodeToLiteral(result[0])
 	}
-	return literal{null: &[]bool{true}[0]}
+	return literal{}
 
 }
 
@@ -192,7 +230,7 @@ func (a functionArgument) Evaluate(node *yaml.Node, root *yaml.Node) literal {
 		if len(result) == 1 {
 			return nodeToLiteral(result[0])
 		}
-		return literal{null: &[]bool{true}[0]}
+		return literal{}
 	}
 	if a.logicalExpr != nil {
 		if a.logicalExpr.Matches(node, root) {
@@ -203,7 +241,7 @@ func (a functionArgument) Evaluate(node *yaml.Node, root *yaml.Node) literal {
 	if a.functionExpr != nil {
 		return a.functionExpr.Evaluate(node, root)
 	}
-	return literal{null: &[]bool{true}[0]}
+	return literal{}
 }
 
 func (q absQuery) Evaluate(node *yaml.Node, root *yaml.Node) literal {
@@ -211,5 +249,5 @@ func (q absQuery) Evaluate(node *yaml.Node, root *yaml.Node) literal {
 	if len(result) == 1 {
 		return nodeToLiteral(result[0])
 	}
-	return literal{null: &[]bool{true}[0]}
+	return literal{}
 }

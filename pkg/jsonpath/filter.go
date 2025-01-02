@@ -1,5 +1,7 @@
 package jsonpath
 
+import "gopkg.in/yaml.v3"
+
 // filter-selector     = "?" S logical-expr
 type filterSelector struct {
 	// logical-expr        = logical-or-expr
@@ -105,11 +107,13 @@ type basicExpr struct {
 // . string-literal /
 // . true / false / null
 type literal struct {
+	// we generally decompose these into their component parts for easier evaluation
 	integer *int
 	float64 *float64
 	string  *string
 	bool    *bool
 	null    *bool
+	node    *yaml.Node
 }
 
 type absQuery jsonPathAST
