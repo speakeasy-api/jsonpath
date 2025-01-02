@@ -233,25 +233,29 @@ func (p *JSONPath) parseSliceSelector() (*Slice, error) {
 }
 
 func (p *JSONPath) parseFilterSelector() (*Selector, error) {
+
 	if p.tokens[p.current].Token != token.FILTER {
 		return nil, p.parseFailure(&p.tokens[p.current], "expected '?'")
 	}
 	p.current++
+	hasParen := false
 
-	if p.tokens[p.current].Token != token.PAREN_LEFT {
-		return nil, p.parseFailure(&p.tokens[p.current], "expected '('")
+	if p.tokens[p.current].Token == token.PAREN_LEFT {
+		hasParen = true
+		p.current++
 	}
-	p.current++
 
 	expr, err := p.parseLogicalOrExpr()
 	if err != nil {
 		return nil, err
 	}
 
-	if p.tokens[p.current].Token != token.PAREN_RIGHT {
-		return nil, p.parseFailure(&p.tokens[p.current], "expected ')'")
+	if hasParen {
+		if p.tokens[p.current].Token != token.PAREN_RIGHT {
+			return nil, p.parseFailure(&p.tokens[p.current], "expected ')'")
+		}
+		p.current++
 	}
-	p.current++
 
 	return &Selector{Kind: SelectorSubKindFilter, filter: &filterSelector{expr}}, nil
 }
