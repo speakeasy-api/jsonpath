@@ -8,17 +8,25 @@ import (
 	"strings"
 )
 
+type mode int
+
+const (
+	modeNormal mode = iota
+	modeSingular
+)
+
 // JSONPath represents a JSONPath parser.
 type JSONPath struct {
 	tokenizer *token.Tokenizer
 	tokens    []token.TokenInfo
 	ast       jsonPathAST
 	current   int
+	mode      []mode
 }
 
 // newParserPrivate creates a new JSONPath with the given tokens.
 func newParserPrivate(tokenizer *token.Tokenizer, tokens []token.TokenInfo) *JSONPath {
-	return &JSONPath{tokenizer, tokens, jsonPathAST{}, 0}
+	return &JSONPath{tokenizer, tokens, jsonPathAST{}, 0, []mode{modeNormal}}
 }
 
 // parse parses the JSONPath tokens and returns the root node of the AST.
@@ -70,6 +78,9 @@ func (p *JSONPath) isComparisonOperator(tok token.Token) bool {
 func (p *JSONPath) parseSegment() (*segment, error) {
 	currentToken := p.tokens[p.current]
 	if currentToken.Token == token.RECURSIVE {
+		if p.mode[len(p.mode)-1] == modeSingular {
+			return nil, p.parseFailure(&p.tokens[p.current], "unexpected recursive descent in singular query")
+		}
 		p.current++
 		child, err := p.parseInnerSegment()
 		if err != nil {
@@ -131,12 +142,25 @@ func (p *JSONPath) parseInnerSegment() (*innerSegment, error) {
 	return nil, p.parseFailure(&firstToken, "unexpected token when parsing inner segment")
 }
 
-func (p *JSONPath) parseSelector() (*Selector, error) {
+func (p *JSONPath) parseSelector() (retSelector *Selector, err error) {
 	//selector            = name-selector /
 	//                      wildcard-selector /
 	//                      slice-selector /
 	//                      index-selector /
 	//                      filter-selector
+	initial := p.current
+	defer func() {
+		if p.mode[len(p.mode)-1] == modeSingular && retSelector != nil {
+			if retSelector.Kind == SelectorSubKindWildcard {
+				err = p.parseFailure(&p.tokens[initial], "unexpected wildcard in singular query")
+				retSelector = nil
+			}
+			if retSelector.Kind == SelectorSubKindArraySlice {
+				err = p.parseFailure(&p.tokens[initial], "unexpected slice in singular query")
+				retSelector = nil
+			}
+		}
+	}()
 
 	//    name-selector       = string-literal
 	if p.tokens[p.current].Token == token.STRING_LITERAL {
@@ -406,13 +430,18 @@ func (p *JSONPath) parseComparable() (*comparable, error) {
 
 func (p *JSONPath) parseQuery() (*jsonPathAST, error) {
 	var query jsonPathAST
+	p.mode = append(p.mode, modeNormal)
+
 	for p.current < len(p.tokens) {
+		prior := p.current
 		segment, err := p.parseSegment()
 		if err != nil {
-			return nil, err
+			p.current = prior
+			break
 		}
 		query.segments = append(query.segments, segment)
 	}
+	p.mode = p.mode[:len(p.mode)-1]
 	return &query, nil
 }
 
@@ -431,14 +460,14 @@ func (p *JSONPath) parseTestExpr() (*testExpr, error) {
 	switch p.tokens[p.current].Token {
 	case token.CURRENT:
 		p.current++
-		query, err := p.parseSingleQuery()
+		query, err := p.parseQuery()
 		if err != nil {
 			return nil, err
 		}
 		return &testExpr{filterQuery: &filterQuery{relQuery: &relQuery{segments: query.segments}}, not: not}, nil
 	case token.ROOT:
 		p.current++
-		query, err := p.parseSingleQuery()
+		query, err := p.parseQuery()
 		if err != nil {
 			return nil, err
 		}
@@ -483,12 +512,15 @@ func (p *JSONPath) parseSingleQuery() (*jsonPathAST, error) {
 	var query jsonPathAST
 	for p.current < len(p.tokens) {
 		try := p.current
+		p.mode = append(p.mode, modeSingular)
 		segment, err := p.parseSegment()
 		if err != nil {
 			// rollback
+			p.mode = p.mode[:len(p.mode)-1]
 			p.current = try
 			break
 		}
+		p.mode = p.mode[:len(p.mode)-1]
 		query.segments = append(query.segments, segment)
 	}
 	//if len(query.segments) == 0 {
