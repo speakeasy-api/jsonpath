@@ -157,44 +157,27 @@ func (s Selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 		if value.Kind != yaml.SequenceNode {
 			return nil
 		}
-		start, end, step := 0, len(value.Content), 1
+		if len(value.Content) == 0 {
+			return nil
+		}
+		step := 1
 		if s.slice.Step != nil {
 			step = *s.slice.Step
-		} else {
-			step = 1
 		}
 		if step == 0 {
 			return nil
 		}
-		if s.slice.Start != nil {
-			start = *s.slice.Start
-		} else if step < 0 {
-			start = len(value.Content) - 1
-		} else {
-			start = 0
-		}
-		if s.slice.End != nil {
-			end = *s.slice.End
-		} else if step < 0 {
-			end = 0
-		} else {
-			end = len(value.Content)
-		}
 
-		if start < 0 {
-			start = start%len(value.Content) + len(value.Content)
-		}
-		if end < 0 {
-			end = end%len(value.Content) + len(value.Content)
-		}
+		start, end := s.slice.Start, s.slice.End
+		lower, upper := bounds(start, end, step, len(value.Content))
 
 		var result []*yaml.Node
-		if step < 0 {
-			for i := start; i >= end && i >= 0 && i < len(value.Content); i += step {
+		if step > 0 {
+			for i := lower; i < upper; i += step {
 				result = append(result, value.Content[i])
 			}
 		} else {
-			for i := start; i < end && i >= 0 && i < len(value.Content); i += step {
+			for i := upper; i > lower; i += step {
 				result = append(result, value.Content[i])
 			}
 		}
@@ -219,6 +202,42 @@ func (s Selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 		return result
 	}
 	return nil
+}
+
+func normalize(i, length int) int {
+	if i >= 0 {
+		return i
+	}
+	return length + i
+}
+
+func bounds(start, end *int, step, length int) (int, int) {
+	var nStart, nEnd int
+	if start != nil {
+		nStart = normalize(*start, length)
+	} else if step > 0 {
+		nStart = 0
+	} else {
+		nStart = length - 1
+	}
+	if end != nil {
+		nEnd = normalize(*end, length)
+	} else if step > 0 {
+		nEnd = length
+	} else {
+		nEnd = -1
+	}
+
+	var lower, upper int
+	if step >= 0 {
+		lower = max(min(nStart, length), 0)
+		upper = min(max(nEnd, 0), length)
+	} else {
+		upper = min(max(nStart, -1), length-1)
+		lower = min(max(nEnd, -1), length-1)
+	}
+
+	return lower, upper
 }
 
 func (s filterSelector) Matches(node *yaml.Node, root *yaml.Node) bool {

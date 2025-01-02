@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+const MaxSafeFloat = 9007199254740991
+
 type mode int
 
 const (
@@ -207,10 +209,9 @@ func (p *JSONPath) parseSelector() (retSelector *Selector, err error) {
 		if err != nil {
 			return nil, p.parseFailure(&p.tokens[p.current], "expected an integer")
 		}
-		// Make sure it's above integer max
-		const MaxSafeFloat = 9007199254740991
-		if i > MaxSafeFloat || i < -MaxSafeFloat {
-			return nil, p.parseFailure(&p.tokens[p.current], "outside bounds for safe integers")
+		err = p.checkSafeInteger(int(i), lit)
+		if err != nil {
+			return nil, err
 		}
 
 		p.current++
@@ -240,6 +241,11 @@ func (p *JSONPath) parseSliceSelector() (*Slice, error) {
 		if err != nil {
 			return nil, p.parseFailure(&p.tokens[p.current], "expected an integer")
 		}
+		err = p.checkSafeInteger(i, literal)
+		if err != nil {
+			return nil, err
+		}
+
 		start = &i
 		p.current += 1
 	}
@@ -257,6 +263,11 @@ func (p *JSONPath) parseSliceSelector() (*Slice, error) {
 		if err != nil {
 			return nil, p.parseFailure(&p.tokens[p.current], "expected an integer")
 		}
+		err = p.checkSafeInteger(i, literal)
+		if err != nil {
+			return nil, err
+		}
+
 		end = &i
 		p.current++
 	}
@@ -270,12 +281,30 @@ func (p *JSONPath) parseSliceSelector() (*Slice, error) {
 			if err != nil {
 				return nil, p.parseFailure(&p.tokens[p.current], "expected an integer")
 			}
+			err = p.checkSafeInteger(i, literal)
+			if err != nil {
+				return nil, err
+			}
+
 			step = &i
 			p.current++
 		}
 	}
+	if p.tokens[p.current].Token != token.BRACKET_RIGHT {
+		return nil, p.parseFailure(&p.tokens[p.current], "expected ']'")
+	}
 
 	return &Slice{Start: start, End: end, Step: step}, nil
+}
+
+func (p *JSONPath) checkSafeInteger(i int, literal string) error {
+	if i > MaxSafeFloat || i < -MaxSafeFloat {
+		return p.parseFailure(&p.tokens[p.current], "outside bounds for safe integers")
+	}
+	if literal == "-0" {
+		return p.parseFailure(&p.tokens[p.current], "-0 unexpected")
+	}
+	return nil
 }
 
 func (p *JSONPath) parseFilterSelector() (*Selector, error) {
