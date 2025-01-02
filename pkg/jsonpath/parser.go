@@ -306,19 +306,11 @@ func (p *JSONPath) parseBasicExpr() (*basicExpr, error) {
 	switch p.tokens[p.current].Token {
 	case token.NOT:
 		p.current++
-		if p.tokens[p.current].Token == token.PAREN_LEFT {
-			p.current++
-			expr, err := p.parseLogicalOrExpr()
-			if err != nil {
-				return nil, err
-			}
-			if p.tokens[p.current].Token != token.PAREN_RIGHT {
-				return nil, p.parseFailure(&p.tokens[p.current], "expected ')'")
-			}
-			p.current++
-			return &basicExpr{parenExpr: &parenExpr{not: true, expr: expr}}, nil
+		expr, err := p.parseLogicalOrExpr()
+		if err != nil {
+			return nil, err
 		}
-		return nil, p.parseFailure(&p.tokens[p.current], "expected '(' after '!'")
+		return &basicExpr{parenExpr: &parenExpr{not: true, expr: expr}}, nil
 	case token.PAREN_LEFT:
 		p.current++
 		expr, err := p.parseLogicalOrExpr()

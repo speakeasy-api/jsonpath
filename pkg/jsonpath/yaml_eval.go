@@ -51,12 +51,18 @@ func equalsNode(a *yaml.Node, b *yaml.Node) bool {
 	case "!!null":
 		return a.Value == b.Value
 	case "!!seq":
+		if len(a.Content) != len(b.Content) {
+			return false
+		}
 		for i := 0; i < len(a.Content); i++ {
 			if !equalsNode(a.Content[i], b.Content[i]) {
 				return false
 			}
 		}
 	case "!!map":
+		if len(a.Content) != len(b.Content) {
+			return false
+		}
 		for i := 0; i < len(a.Content); i += 2 {
 			if !equalsNode(a.Content[i], b.Content[i]) {
 				return false
@@ -82,17 +88,14 @@ func (l literal) LessThan(value literal) bool {
 	if l.float64 != nil && value.integer != nil {
 		return *l.float64 < float64(*value.integer)
 	}
+	if l.string != nil && value.string != nil {
+		return *l.string < *value.string
+	}
 	return false
 }
 
 func (l literal) LessThanOrEqual(value literal) bool {
-	if l.integer != nil && value.integer != nil {
-		return *l.integer <= *value.integer
-	}
-	if l.float64 != nil && value.float64 != nil {
-		return *l.float64 <= *value.float64
-	}
-	return false
+	return l.LessThan(value) || l.Equals(value)
 }
 
 func (c comparable) Evaluate(node *yaml.Node, root *yaml.Node) literal {

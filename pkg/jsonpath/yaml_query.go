@@ -171,17 +171,16 @@ func (s Selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 		return result
 	case SelectorSubKindFilter:
 		var result []*yaml.Node
-		currentMatch := s.filter.Matches(value, root)
 		switch value.Kind {
 		case yaml.MappingNode:
 			for i := 1; i < len(value.Content); i += 2 {
-				if currentMatch || s.filter.Matches(value.Content[i], root) {
+				if s.filter.Matches(value.Content[i], root) {
 					result = append(result, value.Content[i])
 				}
 			}
 		case yaml.SequenceNode:
 			for _, child := range value.Content {
-				if currentMatch || s.filter.Matches(child, root) {
+				if s.filter.Matches(child, root) {
 					result = append(result, child)
 				}
 			}
