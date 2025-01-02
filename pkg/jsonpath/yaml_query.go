@@ -155,19 +155,33 @@ func (s Selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 		start, end, step := 0, len(value.Content), 1
 		if s.slice.Start != nil {
 			start = *s.slice.Start
+		} else {
+			start = 0
 		}
 		if s.slice.End != nil {
 			end = *s.slice.End
+		} else {
+			end = len(value.Content)
 		}
 		if s.slice.Step != nil {
 			step = *s.slice.Step
+		} else {
+			step = 1
+		}
+		if step == 0 {
+			return nil
 		}
 		var result []*yaml.Node
-		for i := start; i < end; i += step {
-			if i >= 0 && i < len(value.Content) {
+		if step < 0 {
+			for i := end - 1; i >= start && i >= 0 && i < len(value.Content); i += step {
+				result = append(result, value.Content[i])
+			}
+		} else {
+			for i := start; i < end && i >= 0 && i < len(value.Content); i += step {
 				result = append(result, value.Content[i])
 			}
 		}
+
 		return result
 	case SelectorSubKindFilter:
 		var result []*yaml.Node
