@@ -42,6 +42,44 @@ type functionArgument struct {
 	functionExpr *functionExpr
 }
 
+type functionArgType int
+
+const (
+	functionArgTypeLiteral functionArgType = iota
+	functionArgTypeNodes
+)
+
+type resolvedArgument struct {
+	kind    functionArgType
+	literal *literal
+	nodes   []*literal
+}
+
+func (a functionArgument) Eval(node *yaml.Node, root *yaml.Node) resolvedArgument {
+	if a.literal != nil {
+		return resolvedArgument{kind: functionArgTypeLiteral, literal: a.literal}
+	} else if a.filterQuery != nil {
+		result := a.filterQuery.Query(node, root)
+		lits := make([]*literal, len(result))
+		for i, node := range result {
+			lit := nodeToLiteral(node)
+			lits[i] = &lit
+		}
+		if len(result) != 1 {
+			return resolvedArgument{kind: functionArgTypeNodes, nodes: lits}
+		} else {
+			return resolvedArgument{kind: functionArgTypeLiteral, literal: lits[0]}
+		}
+	} else if a.logicalExpr != nil {
+		res := a.logicalExpr.Matches(node, root)
+		return resolvedArgument{kind: functionArgTypeLiteral, literal: &literal{bool: &res}}
+	} else if a.functionExpr != nil {
+		res := a.functionExpr.Evaluate(node, root)
+		return resolvedArgument{kind: functionArgTypeLiteral, literal: &res}
+	}
+	return resolvedArgument{}
+}
+
 //function-name       = function-name-first *function-name-char
 //function-name-first = LCALPHA
 //function-name-char  = function-name-first / "_" / DIGIT

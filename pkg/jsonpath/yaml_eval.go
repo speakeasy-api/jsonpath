@@ -2,6 +2,7 @@ package jsonpath
 
 import (
 	"gopkg.in/yaml.v3"
+	"reflect"
 	"regexp"
 	"strconv"
 )
@@ -30,6 +31,9 @@ func (l literal) Equals(value literal) bool {
 	}
 	if l.node != nil && value.node != nil {
 		return equalsNode(l.node, value.node)
+	}
+	if reflect.ValueOf(l).IsZero() && reflect.ValueOf(value).IsZero() {
+		return true
 	}
 	return false
 }
@@ -112,38 +116,56 @@ func (c comparable) Evaluate(node *yaml.Node, root *yaml.Node) literal {
 }
 
 func (e functionExpr) length(node *yaml.Node, root *yaml.Node) literal {
-	switch node.Kind {
-	case yaml.SequenceNode:
-		res := len(node.Content)
-		return literal{integer: &res}
-	case yaml.MappingNode:
-		res := len(node.Content) / 2
-		return literal{integer: &res}
-	case yaml.ScalarNode:
-		res := len(node.Value)
-		return literal{integer: &res}
-	default:
+	args := e.args[0].Eval(node, root)
+	if args.kind != functionArgTypeLiteral {
 		return literal{}
 	}
+	//*  If the argument value is a string, the result is the number of
+	//Unicode scalar values in the string.
+	if args.literal != nil && args.literal.string != nil {
+		res := len(*args.literal.string)
+		return literal{integer: &res}
+	}
+	//*  If the argument value is an array, the result is the number of
+	//elements in the array.
+	//
+	//*  If the argument value is an object, the result is the number of
+	//members in the object.
+	//
+	//*  For any other argument value, the result is the special result
+	//Nothing.
+
+	if args.literal.node != nil {
+		switch args.literal.node.Kind {
+		case yaml.SequenceNode:
+			res := len(node.Content)
+			return literal{integer: &res}
+		case yaml.MappingNode:
+			res := len(node.Content) / 2
+			return literal{integer: &res}
+		}
+	}
+	return literal{}
 }
 
 func (e functionExpr) count(node *yaml.Node, root *yaml.Node) literal {
-	args := e.args[0].filterQuery.Query(node, root)
-	//
-	res := len(args)
-	return literal{integer: &res}
+	return literal{}
 }
 
 func (e functionExpr) match(node *yaml.Node, root *yaml.Node) literal {
 	if node.Kind != yaml.ScalarNode {
 		return literal{bool: &[]bool{false}[0]}
 	}
-	arg1 := e.args[0].Evaluate(node, root)
-	arg2 := e.args[1].Evaluate(node, root)
-	if arg1.string == nil || arg2.string == nil {
+
+	arg1 := e.args[0].Eval(node, root)
+	arg2 := e.args[1].Eval(node, root)
+	if arg1.kind != functionArgTypeLiteral || arg2.kind != functionArgTypeLiteral {
+		return literal{}
+	}
+	if arg1.literal.string == nil || arg2.literal.string == nil {
 		return literal{bool: &[]bool{false}[0]}
 	}
-	matched, _ := regexp.MatchString(*arg2.string, *arg1.string)
+	matched, _ := regexp.MatchString(*arg2.literal.string, *arg1.literal.string)
 	return literal{bool: &matched}
 }
 
@@ -151,19 +173,40 @@ func (e functionExpr) search(node *yaml.Node, root *yaml.Node) literal {
 	if node.Kind != yaml.ScalarNode {
 		return literal{bool: &[]bool{false}[0]}
 	}
-	arg1 := e.args[0].Evaluate(node, root)
-	arg2 := e.args[1].Evaluate(node, root)
-	if arg1.string == nil || arg2.string == nil {
+	arg1 := e.args[0].Eval(node, root)
+	arg2 := e.args[1].Eval(node, root)
+	if arg1.kind != functionArgTypeLiteral || arg2.kind != functionArgTypeLiteral {
+		return literal{}
+	}
+	if arg1.literal.string == nil || arg2.literal.string == nil {
 		return literal{bool: &[]bool{false}[0]}
 	}
-	matched, _ := regexp.MatchString(*arg2.string, *arg1.string)
+	matched, _ := regexp.MatchString(*arg2.literal.string, *arg1.literal.string)
 	return literal{bool: &matched}
 }
 
 func (e functionExpr) value(node *yaml.Node, root *yaml.Node) literal {
-	args := e.args[0].filterQuery.Query(node, root)
-	if len(args) == 1 {
-		return nodeToLiteral(args[0])
+	//	2.4.8.  value() Function Extension
+	//
+	//Parameters:
+	//	1.  NodesType
+	//
+	//Result:  ValueType
+	//Its only argument is an instance of NodesType (possibly taken from a
+	//filter-query, as in the example above).  The result is an instance of
+	//ValueType.
+	//
+	//*  If the argument contains a single node, the result is the value of
+	//the node.
+	//
+	//*  If the argument is the empty nodelist or contains multiple nodes,
+	//	the result is Nothing.
+
+	nodesType := e.args[0].Eval(node, root)
+	if nodesType.kind == functionArgTypeLiteral {
+		return *nodesType.literal
+	} else if nodesType.kind == functionArgTypeNodes && len(nodesType.nodes) == 1 {
+		return *nodesType.nodes[0]
 	}
 	return literal{}
 }
@@ -222,29 +265,6 @@ func (q relQuery) Evaluate(node *yaml.Node, root *yaml.Node) literal {
 	}
 	return literal{}
 
-}
-
-func (a functionArgument) Evaluate(node *yaml.Node, root *yaml.Node) literal {
-	if a.literal != nil {
-		return *a.literal
-	}
-	if a.filterQuery != nil {
-		result := a.filterQuery.Query(node, root)
-		if len(result) == 1 {
-			return nodeToLiteral(result[0])
-		}
-		return literal{}
-	}
-	if a.logicalExpr != nil {
-		if a.logicalExpr.Matches(node, root) {
-			return literal{bool: &[]bool{true}[0]}
-		}
-		return literal{bool: &[]bool{false}[0]}
-	}
-	if a.functionExpr != nil {
-		return a.functionExpr.Evaluate(node, root)
-	}
-	return literal{}
 }
 
 func (q absQuery) Evaluate(node *yaml.Node, root *yaml.Node) literal {

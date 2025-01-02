@@ -131,7 +131,7 @@ func (s Selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 		if value.Kind != yaml.SequenceNode {
 			return nil
 		}
-		if s.index >= len(value.Content) {
+		if s.index >= len(value.Content) || s.index < 0 {
 			return nil
 		}
 		return []*yaml.Node{value.Content[s.index]}

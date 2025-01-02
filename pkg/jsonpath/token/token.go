@@ -595,7 +595,7 @@ func (t *Tokenizer) scanNumber() {
 		}
 
 		if t.input[i] == 'e' || t.input[i] == 'E' {
-			if exponentSeen {
+			if exponentSeen || (len(t.input) > 0 && t.input[i-1] == '.') {
 				t.addToken(ILLEGAL, len(t.input[start:i]), t.input[start:i])
 				t.pos = i
 				t.column += i - start
@@ -611,6 +611,17 @@ func (t *Tokenizer) scanNumber() {
 
 		if !isDigit(t.input[i]) {
 			literal := t.input[start:i]
+			// check for legal numbers (part of conformance spec)
+			if len(literal) > 1 && literal[0] == '0' {
+				// no leading zero
+				tokenType = ILLEGAL
+			} else if len(literal) > 0 && literal[len(literal)-1] == '.' {
+				// no trailing dot
+				tokenType = ILLEGAL
+			} else if literal[len(literal)-1] == 'e' || literal[len(literal)-1] == 'E' {
+				// no exponent
+				tokenType = ILLEGAL
+			}
 			t.addToken(tokenType, len(literal), literal)
 			t.pos = i - 1
 			t.column += i - start - 1

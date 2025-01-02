@@ -100,7 +100,20 @@ func (p *JSONPath) parseSegment() (*segment, error) {
 	return nil, p.parseFailure(&currentToken, "unexpected token when parsing segment")
 }
 
-func (p *JSONPath) parseInnerSegment() (*innerSegment, error) {
+func (p *JSONPath) parseInnerSegment() (retValue *innerSegment, err error) {
+	defer func() {
+		if p.mode[len(p.mode)-1] == modeSingular && retValue != nil {
+			if len(retValue.selectors) > 1 {
+				retValue = nil
+				err = p.parseFailure(&p.tokens[p.current], "unexpected multiple selectors in singular query")
+				return
+			} else if retValue.kind == segmentDotWildcard {
+				retValue = nil
+				err = p.parseFailure(&p.tokens[p.current], "unexpected wildcard in singular query")
+				return
+			}
+		}
+	}()
 	// .*
 	// .STRING
 	// []
@@ -154,8 +167,7 @@ func (p *JSONPath) parseSelector() (retSelector *Selector, err error) {
 			if retSelector.Kind == SelectorSubKindWildcard {
 				err = p.parseFailure(&p.tokens[initial], "unexpected wildcard in singular query")
 				retSelector = nil
-			}
-			if retSelector.Kind == SelectorSubKindArraySlice {
+			} else if retSelector.Kind == SelectorSubKindArraySlice {
 				err = p.parseFailure(&p.tokens[initial], "unexpected slice in singular query")
 				retSelector = nil
 			}
@@ -485,21 +497,43 @@ func (p *JSONPath) parseTestExpr() (*testExpr, error) {
 
 func (p *JSONPath) parseFunctionExpr() (*functionExpr, error) {
 	functionName := p.tokens[p.current].Literal
-	if p.tokens[p.current+1].Token != token.PAREN_LEFT {
-		return nil, p.parseFailure(&p.tokens[p.current+1], "expected '('")
+	if p.current+1 >= len(p.tokens) || p.tokens[p.current+1].Token != token.PAREN_LEFT {
+		return nil, p.parseFailure(&p.tokens[p.current], "expected '(' after function")
 	}
 	p.current += 2
 	args := []*functionArgument{}
-	for p.current < len(p.tokens) {
-		arg, err := p.parseFunctionArgument()
+	switch functionTypeMap[functionName] {
+	case functionTypeLength:
+		fallthrough
+	case functionTypeCount:
+		arg, err := p.parseFunctionArgument(true)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, arg)
+	case functionTypeValue:
+		arg, err := p.parseFunctionArgument(false)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, arg)
+	case functionTypeMatch:
+		fallthrough
+	case functionTypeSearch:
+		arg, err := p.parseFunctionArgument(false)
 		if err != nil {
 			return nil, err
 		}
 		args = append(args, arg)
 		if p.tokens[p.current].Token != token.COMMA {
-			break
+			return nil, p.parseFailure(&p.tokens[p.current], "expected ','")
 		}
 		p.current++
+		arg, err = p.parseFunctionArgument(false)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, arg)
 	}
 	if p.tokens[p.current].Token != token.PAREN_RIGHT {
 		return nil, p.parseFailure(&p.tokens[p.current], "expected ')'")
@@ -529,7 +563,7 @@ func (p *JSONPath) parseSingleQuery() (*jsonPathAST, error) {
 	return &query, nil
 }
 
-func (p *JSONPath) parseFunctionArgument() (*functionArgument, error) {
+func (p *JSONPath) parseFunctionArgument(single bool) (*functionArgument, error) {
 	//function-argument   = literal /
 	//	filter-query / ; (includes singular-query)
 	//  logical-expr /
@@ -538,28 +572,39 @@ func (p *JSONPath) parseFunctionArgument() (*functionArgument, error) {
 	if lit, err := p.parseLiteral(); err == nil {
 		return &functionArgument{literal: lit}, nil
 	}
-	if funcExpr, err := p.parseFunctionExpr(); err == nil {
-		return &functionArgument{functionExpr: funcExpr}, nil
-	}
-	if expr, err := p.parseLogicalOrExpr(); err == nil {
-		return &functionArgument{logicalExpr: expr}, nil
-	}
-
 	switch p.tokens[p.current].Token {
 	case token.CURRENT:
 		p.current++
-		query, err := p.parseSingleQuery()
+		var query *jsonPathAST
+		var err error
+		if single {
+			query, err = p.parseSingleQuery()
+		} else {
+			query, err = p.parseQuery()
+		}
 		if err != nil {
 			return nil, err
 		}
 		return &functionArgument{filterQuery: &filterQuery{relQuery: &relQuery{segments: query.segments}}}, nil
 	case token.ROOT:
 		p.current++
-		query, err := p.parseSingleQuery()
+		var query *jsonPathAST
+		var err error
+		if single {
+			query, err = p.parseSingleQuery()
+		} else {
+			query, err = p.parseQuery()
+		}
 		if err != nil {
 			return nil, err
 		}
 		return &functionArgument{filterQuery: &filterQuery{jsonPathQuery: &jsonPathAST{segments: query.segments}}}, nil
+	}
+	if expr, err := p.parseLogicalOrExpr(); err == nil {
+		return &functionArgument{logicalExpr: expr}, nil
+	}
+	if funcExpr, err := p.parseFunctionExpr(); err == nil {
+		return &functionArgument{functionExpr: funcExpr}, nil
 	}
 
 	return nil, p.parseFailure(&p.tokens[p.current], "unexpected token for function argument")
