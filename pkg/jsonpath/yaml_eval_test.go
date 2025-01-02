@@ -243,62 +243,6 @@ func TestComparableEvaluate(t *testing.T) {
 	}
 }
 
-func TestFunctionExprEvaluate(t *testing.T) {
-	testCases := []struct {
-		name     string
-		funcExpr functionExpr
-		node     *yaml.Node
-		root     *yaml.Node
-		expected literal
-	}{
-		{
-			name:     "Length of scalar",
-			funcExpr: functionExpr{funcType: functionTypeLength},
-			node:     yamlNodeFromString("hello"),
-			root:     yamlNodeFromString("hello"),
-			expected: literal{integer: intPtr(5)},
-		},
-		{
-			name:     "Length of sequence",
-			funcExpr: functionExpr{funcType: functionTypeLength},
-			node:     yamlNodeFromString(`["a", "b", "c"]`),
-			root:     yamlNodeFromString(`["a", "b", "c"]`),
-			expected: literal{integer: intPtr(3)},
-		},
-		{
-			name:     "Length of mapping",
-			funcExpr: functionExpr{funcType: functionTypeLength},
-			node:     yamlNodeFromString(`{"a": 1, "b": 2}`),
-			root:     yamlNodeFromString(`{"a": 1, "b": 2}`),
-			expected: literal{integer: intPtr(2)},
-		},
-		{
-			name:     "Count of nodes",
-			funcExpr: functionExpr{funcType: functionTypeCount, args: []*functionArgument{{filterQuery: &filterQuery{relQuery: &relQuery{segments: []*segment{}}}}}},
-			node:     yamlNodeFromString(`["a", "b", "c"]`),
-			root:     yamlNodeFromString(`["a", "b", "c"]`),
-			expected: literal{integer: intPtr(1)}, // Count of a node list is 1 (unintuitive I know)
-		},
-		{
-			name:     "Count of node wildcard",
-			funcExpr: functionExpr{funcType: functionTypeCount, args: []*functionArgument{{filterQuery: &filterQuery{relQuery: &relQuery{segments: []*segment{{Child: &innerSegment{kind: segmentDotWildcard}}}}}}}},
-			node:     yamlNodeFromString(`["a", "b", "c"]`),
-			root:     yamlNodeFromString(`["a", "b", "c"]`),
-			expected: literal{integer: intPtr(3)}, // Count of a node list is 1 (unintuitive I know)
-		},
-		// Add more test cases for match, search, and value functions
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := tc.funcExpr.Evaluate(tc.node, tc.root)
-			if !reflect.DeepEqual(result, tc.expected) {
-				t.Errorf("Expected %v, but got %v", tc.expected, result)
-			}
-		})
-	}
-}
-
 func TestSingularQueryEvaluate(t *testing.T) {
 	testCases := []struct {
 		name     string

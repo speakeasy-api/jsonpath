@@ -375,14 +375,14 @@ func TestTokenizer(t *testing.T) {
 			tokens := tokenizer.Tokenize()
 
 			if len(tokens) != len(test.expected) {
-				msg := tokenizer.ErrorTokenString(tokens[0], fmt.Sprintf("Expected %d tokens, got %d", len(test.expected), len(tokens)))
+				msg := tokenizer.ErrorTokenString(&tokens[0], fmt.Sprintf("Expected %d tokens, got %d", len(test.expected), len(tokens)))
 				t.Error(msg)
 			}
 
 			for i, expectedToken := range test.expected {
 				actualToken := tokens[i]
 				if actualToken != expectedToken {
-					msg := tokenizer.ErrorString(actualToken, fmt.Sprintf("Expected token %+v, got %+v", expectedToken, actualToken))
+					msg := tokenizer.ErrorString(&actualToken, fmt.Sprintf("Expected token %+v, got %+v", expectedToken, actualToken))
 					t.Error(msg)
 				}
 			}
@@ -430,7 +430,7 @@ func TestTokenizer_categorize(t *testing.T) {
 		{name: "bracket child with non-integer array subscript", path: "$['child'][1:2:a]"},
 		{name: "bracket child with unclosed array subscript", path: "$['child'][*"},
 		{name: "bracket child with missing array subscript", path: "$['child'][]", simple: true},
-		{name: "bracket child followed by space", path: "$['child'] ", simple: true},
+		{name: "bracket child followed by space", path: "$['child'] ", illegal: true},
 		{name: "bracket dotted child", path: "$['child1.child2']", simple: true},
 		{name: "bracket child with array subscript", path: "$['child'][*]"},
 		{name: "property name dot child", path: "$.child~", illegal: true},
@@ -609,12 +609,12 @@ func TestTokenizer_categorize(t *testing.T) {
 				if token.Token == ILLEGAL {
 					foundIllegal = true
 					if !tc.illegal {
-						t.Errorf(tokenizer.ErrorString(token, "Illegal Token"))
+						t.Errorf(tokenizer.ErrorString(&token, "Illegal Token"))
 					}
 				}
 			}
 			if tc.illegal && !foundIllegal {
-				t.Errorf(tokenizer.ErrorTokenString(tokenizedJsonPath[0], "Expected an illegal token"))
+				t.Errorf(tokenizer.ErrorTokenString(&tokenizedJsonPath[0], "Expected an illegal token"))
 			}
 
 			if tc.simple && foundIllegal {
@@ -631,12 +631,12 @@ func TestTokenizer_categorize(t *testing.T) {
 						}
 					}
 					if !simple {
-						t.Errorf(tokenizer.ErrorString(token, "Expected a simple path, but found a non-simple token"))
+						t.Errorf(tokenizer.ErrorString(&token, "Expected a simple path, but found a non-simple token"))
 					}
 				}
 			}
 			if !tc.simple && tokenizedJsonPath.IsSimple() {
-				t.Errorf(tokenizer.ErrorTokenString(tokenizedJsonPath[0], "Expected a non-simple path, but found it was simple"))
+				t.Errorf(tokenizer.ErrorTokenString(&tokenizedJsonPath[0], "Expected a non-simple path, but found it was simple"))
 			}
 		})
 	}
