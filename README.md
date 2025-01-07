@@ -27,7 +27,7 @@ Everything within RFC9535 is in scope. Grammars outside RFC 9535 are not in scop
 
 ## Installation
 
-This application is included in the [speakeasy](https://github.com/speakeasy-api/speakeasy) CLI, but available as a stand-alone library.
+This application is included in the [speakeasy](https://github.com/speakeasy-api/speakeasy) CLI, but is also available as a standalone library.
 
 ## ABNF grammar
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { ReactNode, useCallback, useEffect, useState } from "react";
 import "./App.css";
 import { Editor } from "./components/Editor.tsx";
 import { editor } from "monaco-editor";
@@ -23,11 +23,13 @@ function Playground() {
   const [result, setResult] = useAtom(overlay);
   const [resultLoading, setResultLoading] = useState(false);
   const [error, setError] = useState("");
+
   useEffect(() => {
     (async () => {
       setReady(true);
     })();
   }, []);
+
   const onChangeA = useCallback(
     async (value: string | undefined, _: editor.IModelContentChangedEvent) => {
       try {
@@ -46,6 +48,7 @@ function Playground() {
     },
     [changed, original],
   );
+
   const onChangeB = useCallback(
     async (value: string | undefined, _: editor.IModelContentChangedEvent) => {
       try {
@@ -104,6 +107,18 @@ function Playground() {
     return "";
   }
 
+  const Link = ({ children, href }: { children: ReactNode; href: string }) => (
+    <a
+      className="border-b border-transparent pb-[2px] transition-all duration-200 hover:border-current "
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      style={{ color: "#FBE331" }}
+    >
+      {children}
+    </a>
+  );
+
   return (
     <div
       style={{
@@ -118,7 +133,7 @@ function Playground() {
         <div className="border-b border-muted p-4 md:p-6 text-left">
           <div className="flex gap-2">
             <div className="flex flex-1">
-              <div className="flex items-center pr-2">
+              <div className="flex items-center pr-4">
                 <img
                   src={openapiLogo}
                   alt="OpenAPI Logo"
@@ -127,23 +142,17 @@ function Playground() {
               </div>
               <div className="grow-1">
                 <h1 className="text-xl font-semibold leading-none tracking-tight">
-                  <a
-                    className="underline hover:no-underline pr-1"
-                    href="https://github.com/OAI/Overlay-Specification"
-                  >
-                    OpenAPI Overlay
-                  </a>
-                  Playground
+                  OpenAPI Overlay Playground
                 </h1>
                 <p className="max-w-prose text-sm text-muted-foreground pt-2">
-                  The OpenAPI Overlay Specification lets you update arbitrary
-                  values in an YAML document using{" "}
-                  <a
-                    className="border-b border-transparent pb-[2px] transition-all duration-200 hover:border-current"
-                    href="https://datatracker.ietf.org/doc/rfc9535/"
-                  >
+                  The{" "}
+                  <Link href="https://github.com/OAI/Overlay-Specification">
+                    OpenAPI Overlay Specification
+                  </Link>{" "}
+                  lets you update arbitrary values in an YAML document using{" "}
+                  <Link href="https://datatracker.ietf.org/doc/rfc9535/">
                     jsonpath
-                  </a>
+                  </Link>
                   .
                 </p>
               </div>
@@ -151,40 +160,31 @@ function Playground() {
             <div className="flex flex-1 flex-row-reverse">
               <ul className="flex gap-x-2">
                 <li>
-                  <a
-                    className="border-b border-transparent pb-[2px] transition-all duration-200 hover:border-current"
-                    href="https://www.speakeasy.com"
-                  >
-                    Made by the team at{" "}
-                    <span className="sr-only">Speakeasy</span>
+                  <Link href="https://www.speakeasy.com">
+                    Made by the team at
+                    <div className="sr-only ml-2">Speakeasy</div>
                     <picture>
                       <source
                         srcSet={speakeasyWhiteLogo}
                         media="(prefers-color-scheme: dark)"
                       />
                       <img
-                        className="inline-block h-3 w-auto align-baseline"
+                        className="inline-block h-3 w-auto align-baseline ml-2"
                         src={speakeasyWhiteLogo}
                         alt=""
                       />
                     </picture>
-                  </a>
+                  </Link>
                 </li>
                 <li className="before:pe-2 before:content-['•']">
-                  <a
-                    className="border-b border-transparent pb-[2px] transition-all duration-200 hover:border-current"
-                    href="https://github.com/speakeasy-api/jsonpath"
-                  >
+                  <Link href="https://github.com/speakeasy-api/jsonpath">
                     GitHub
-                  </a>
+                  </Link>
                 </li>
                 <li className="before:pe-2 before:content-['•']">
-                  <a
-                    className="border-b border-transparent pb-[2px] transition-all duration-200 hover:border-current"
-                    href="https://github.com/OAI/Overlay-Specification"
-                  >
+                  <Link href="https://github.com/OAI/Overlay-Specification">
                     OpenAPI Overlay
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -198,10 +198,16 @@ function Playground() {
           flexDirection: "row",
           width: "100%",
           justifyContent: "space-between",
+          gap: "1rem",
         }}
       >
         <div style={{ height: "calc(100vh - 50px)", width: "33vw" }}>
-          <Editor readonly={false} value={original} onChange={onChangeA} />
+          <Editor
+            readonly={false}
+            value={original}
+            onChange={onChangeA}
+            title="Original"
+          />
         </div>
         <div style={{ height: "calc(100vh - 50px)", width: "33vw" }}>
           <Editor
@@ -209,6 +215,7 @@ function Playground() {
             value={changed}
             onChange={onChangeB}
             loading={changedLoading}
+            title={"Original + Overlay"}
           />
         </div>
         <div style={{ height: "calc(100vh - 50px)", width: "33vw" }}>
@@ -217,6 +224,7 @@ function Playground() {
             value={result}
             onChange={onChangeC}
             loading={resultLoading}
+            title={"Overlay"}
           />
         </div>
       </div>
