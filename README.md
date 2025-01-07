@@ -21,7 +21,7 @@
 
 This is a full implementation of [RFC 9535](https://datatracker.ietf.org/doc/rfc9535/)
 
-It is build to be webasm compatible. A playground application is available at [overlay.speakeasy.com](https://overlay.speakeasy.com/)
+It is build to be wasm compatible. A playground application is available at [overlay.speakeasy.com](https://overlay.speakeasy.com/)
 
 Everything within RFC9535 is in scope. Grammars outside RFC 9535 are not in scope.
 
@@ -222,10 +222,6 @@ This application is included in the [speakeasy](https://github.com/speakeasy-api
    normal-index-selector = "0" / (DIGIT1 *DIGIT)
                            ; non-negative decimal integer
 ```
-
-## Functions
-
-
 
 ## Contributing
 
