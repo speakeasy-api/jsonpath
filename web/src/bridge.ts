@@ -60,6 +60,24 @@ export type CalculateOverlayMessage = {
       };
 };
 
+export type GetInfoMessage = {
+  Request: {
+    type: "GetInfo";
+    payload: {
+      openapi: string;
+    };
+  };
+  Response:
+    | {
+        type: "GetInfoResult";
+        payload: string;
+      }
+    | {
+        type: "GetInfoError";
+        error: string;
+      };
+};
+
 export type ApplyOverlayMessage = {
   Request: {
     type: "ApplyOverlay";
@@ -103,6 +121,16 @@ export function ApplyOverlay(
       type: "ApplyOverlay",
       payload: { source, overlay },
     } satisfies ApplyOverlayMessage["Request"],
+    supercede,
+  );
+}
+
+export function GetInfo(openapi: string, supercede = false): Promise<string> {
+  return sendMessage(
+    {
+      type: "GetInfo",
+      payload: { openapi },
+    } satisfies GetInfoMessage["Request"],
     supercede,
   );
 }

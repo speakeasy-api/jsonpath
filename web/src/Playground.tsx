@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import "./App.css";
 import { Editor } from "./components/Editor.tsx";
 import { editor } from "monaco-editor";
-import { ApplyOverlay, CalculateOverlay } from "./bridge.ts";
+import { ApplyOverlay, CalculateOverlay, GetInfo } from "./bridge.ts";
 import { Alert, PageHeader } from "@speakeasy-api/moonshine";
 import { blankOverlay, petstore } from "./defaults.ts";
 import { useAtom } from "jotai";
@@ -81,6 +81,22 @@ function Playground() {
     },
     [changed, original],
   );
+
+  useEffect(() => {
+    const tryHandlePageTitle = async () => {
+      try {
+        const info = await GetInfo(original);
+        const { title, version } = JSON.parse(info);
+        const pageTitle = `${title} ${version} | Speakeasy OpenAPI Overlay Playground`;
+        if (document.title !== pageTitle) {
+          document.title = pageTitle;
+        }
+      } catch (e: unknown) {
+        console.error(e);
+      }
+    };
+    tryHandlePageTitle();
+  }, [original]);
 
   if (!ready) {
     return "";
