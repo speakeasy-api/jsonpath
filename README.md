@@ -1,10 +1,29 @@
+<div align="center">
+ <a href="https://www.speakeasy.com/" target="_blank">
+   <picture>
+       <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/21dd5d3a-aefc-4cd3-abee-5e17ef1d4dad">
+       <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/0a747f98-d228-462d-9964-fd87bf93adc5">
+       <img width="100px" src="https://github.com/user-attachments/assets/21dd5d3a-aefc-4cd3-abee-5e17ef1d4dad#gh-light-mode-only" alt="Speakeasy">
+   </picture>
+ </a>
+  <h1>Speakeasy</h1>
+  <p>Build APIs your users love ❤️ with Speakeasy</p>
+  <div>
+   <a href="https://speakeasy.com/docs/create-client-sdks/" target="_blank"><b>Docs Quickstart</b></a>&nbsp;&nbsp;//&nbsp;&nbsp;<a href="https://join.slack.com/t/speakeasy-dev/shared_invite/zt-1cwb3flxz-lS5SyZxAsF_3NOq5xc8Cjw" target="_blank"><b>Join us on Slack</b></a>
+  </div>
+ <br />
+
+</div>
+
 # jsonpath
+
+<a href="https://pkg.go.dev/github.com/speakeasy-api/jsonpath?tab=doc"><img alt="Go Doc" src="https://img.shields.io/badge/godoc-reference-blue.svg?style=for-the-badge"></a>
 
 This is a full implementation of [RFC 9535](https://datatracker.ietf.org/doc/rfc9535/)
 
-It is build to be webasm compatible. A playground application is also included.
+It is build to be wasm compatible. A playground application is available at [overlay.speakeasy.com](https://overlay.speakeasy.com/)
 
-Everything within RFC9535 is in scope. Grammars outside RFC 9535 are not in scope. For example, using `=~` to dynamically represent a matched regex is not in scope.
+Everything within RFC9535 is in scope. Grammars outside RFC 9535 are not in scope.
 
 ## Installation
 
@@ -204,9 +223,6 @@ This application is included in the [speakeasy](https://github.com/speakeasy-api
                            ; non-negative decimal integer
 ```
 
-## Functions
-
-
-
 ## Contributing
 
+We welcome contributions to this repository! Please open a Github issue or a Pull Request if you have an implementation for a bug fix or feature. This repository is compliant with the [jsonpath standard compliance test suite](https://github.com/jsonpath-standard/jsonpath-compliance-test-suite/tree/9277705cda4489c3d0d984831e7656e48145399b) 
