@@ -8,7 +8,6 @@ import { blankOverlay, petstore } from "./defaults.ts";
 import { useAtom } from "jotai";
 import { atomWithHash } from "jotai-location";
 import speakeasyWhiteLogo from "./assets/speakeasy-white.svg";
-import speakeasyBlackLogo from "./assets/speakeasy-black.svg";
 import openapiLogo from "./assets/openapi.svg";
 
 const originalOpenAPI = atomWithHash("originalOpenAPI", petstore);
@@ -165,7 +164,7 @@ function Playground() {
                       />
                       <img
                         className="inline-block h-3 w-auto align-baseline"
-                        src={speakeasyBlackLogo}
+                        src={speakeasyWhiteLogo}
                         alt=""
                       />
                     </picture>
