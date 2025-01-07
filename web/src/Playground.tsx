@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import "./App.css";
 import { Editor } from "./components/Editor.tsx";
 import { editor } from "monaco-editor";
