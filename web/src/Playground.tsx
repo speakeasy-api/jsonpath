@@ -4,13 +4,14 @@ import { Editor } from "./components/Editor.tsx";
 import { editor } from "monaco-editor";
 import { ApplyOverlay, CalculateOverlay } from "./bridge.ts";
 import { Alert, Badge, PageHeader } from "@speakeasy-api/moonshine";
+import { blankOverlay, petstore } from "./defaults.ts";
 
 function Playground() {
   const [ready, setReady] = useState(false);
-  const [original, setOriginal] = useState("");
+  const [original, setOriginal] = useState(petstore);
   const [executing, setExecuting] = useState(false);
-  const [changed, setChanged] = useState("");
-  const [result, setResult] = useState("");
+  const [changed, setChanged] = useState(petstore);
+  const [result, setResult] = useState(blankOverlay);
   const [error, setError] = useState("");
   const isLoading = useMemo(() => !ready && !executing, [ready, executing]);
   useEffect(() => {
