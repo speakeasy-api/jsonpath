@@ -1,6 +1,6 @@
 //go:build js && wasm
 
-package wasm
+package main
 
 import (
 	"fmt"
