@@ -160,7 +160,7 @@ function Playground() {
             <div className="flex flex-1 flex-row-reverse">
               <ul className="flex gap-x-2">
                 <li>
-                  <Link href="https://www.speakeasy.com">
+                  <Link href="https://www.speakeasy.com?utm_source=overlay-playground">
                     Made by the team at
                     <div className="sr-only ml-2">Speakeasy</div>
                     <picture>
