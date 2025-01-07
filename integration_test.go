@@ -35,8 +35,9 @@ func TestJSONPathComplianceTestSuite(t *testing.T) {
 	json.Unmarshal(file, &testSuite)
 	for i := 0; i < len(testSuite.Tests); i++ {
 		// if Tags contains "unicode", delete it
+		// (they break the yaml parser)
 		shouldDelete := slices.Contains(testSuite.Tests[i].Tags, "unicode")
-		// delete new line / some unicode tests -- these break the yaml parser
+		// delete some other new line / unicode tests -- these also break the yaml parser
 		shouldDelete = shouldDelete || strings.Contains(testSuite.Tests[i].Name, "line feed")
 		shouldDelete = shouldDelete || strings.Contains(testSuite.Tests[i].Name, "carriage return")
 		shouldDelete = shouldDelete || strings.Contains(testSuite.Tests[i].Name, "u2028")
@@ -126,8 +127,7 @@ func compareResults(actual, expected []*yaml.Node) (bool, string) {
 		return true, ""
 	}
 
-	// Use a differ library to generate a nice diff string
-	// You can use a package like github.com/pmezard/go-difflib/difflib
+	// Generate a nice diff string
 	diff := difflib.UnifiedDiff{
 		A:        difflib.SplitLines(string(expectedStr)),
 		B:        difflib.SplitLines(string(actualStr)),
