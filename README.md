@@ -19,7 +19,7 @@
 
 This is a full implementation of [RFC 9535](https://datatracker.ietf.org/doc/rfc9535/)
 
-It is build to be webasm compatible. A playground application is available at https://overlay.speakeasy.com.
+It is built to be wasm compatible. A playground application is available at https://overlay.speakeasy.com.
 
 Everything within RFC9535 is in scope. Grammars outside RFC 9535 are not in scope.
 
