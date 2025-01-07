@@ -17,9 +17,11 @@
 
 # jsonpath
 
+<a href="https://pkg.go.dev/github.com/speakeasy-api/jsonpath?tab=doc"><img alt="Go Doc" src="https://img.shields.io/badge/godoc-reference-blue.svg?style=for-the-badge"></a>
+
 This is a full implementation of [RFC 9535](https://datatracker.ietf.org/doc/rfc9535/)
 
-It is build to be webasm compatible. A playground application is available at https://overlay.speakeasy.com.
+It is build to be webasm compatible. A playground application is available at [overlay.speakeasy.com](https://overlay.speakeasy.com/)
 
 Everything within RFC9535 is in scope. Grammars outside RFC 9535 are not in scope.
 
