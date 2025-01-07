@@ -9,6 +9,7 @@ export default defineConfig({
   define: {
     // add nodejs shims: moonshine requires them.
     global: {},
+    // importing moonshine error'd without this.
     "process.env.VSCODE_TEXTMATE_DEBUG": "false",
   },
   resolve: {
@@ -16,5 +17,4 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-
 });
