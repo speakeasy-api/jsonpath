@@ -1,4 +1,4 @@
-package jsonpath
+package token
 
 import (
 	"fmt"
@@ -162,16 +162,17 @@ type Token int
 // The list of tokens.
 const (
 	ILLEGAL Token = iota
-	STRING_LITERAL
-	NUMBER
 	STRING
-	BOOLEAN
+	INTEGER
+	FLOAT
+	STRING_LITERAL
+	TRUE
+	FALSE
 	NULL
 	ROOT
 	CURRENT
 	WILDCARD
 	RECURSIVE
-	UNION
 	CHILD
 	ARRAY_SLICE
 	FILTER
@@ -179,7 +180,6 @@ const (
 	PAREN_RIGHT
 	BRACKET_LEFT
 	BRACKET_RIGHT
-	COLON
 	COMMA
 	TILDE
 	AND
@@ -192,12 +192,13 @@ const (
 	LT
 	LE
 	MATCHES
+	FUNCTION
 )
 
 var SimpleTokens = [...]Token{
-	STRING_LITERAL,
-	NUMBER,
 	STRING,
+	INTEGER,
+	STRING_LITERAL,
 	CHILD,
 	BRACKET_LEFT,
 	BRACKET_RIGHT,
@@ -206,10 +207,12 @@ var SimpleTokens = [...]Token{
 
 var tokens = [...]string{
 	ILLEGAL:        "ILLEGAL",
-	STRING_LITERAL: "STRING_LITERAL",
-	NUMBER:         "NUMBER",
 	STRING:         "STRING",
-	BOOLEAN:        "BOOLEAN",
+	INTEGER:        "INTEGER",
+	FLOAT:          "FLOAT",
+	STRING_LITERAL: "STRING_LITERAL",
+	TRUE:           "TRUE",
+	FALSE:          "FALSE",
 	NULL:           "NULL",
 	// root node identifier (Section 2.2)
 	ROOT: "$",
@@ -218,7 +221,6 @@ var tokens = [...]string{
 	CURRENT:   "@",
 	WILDCARD:  "*",
 	RECURSIVE: "..",
-	UNION:     ",",
 	CHILD:     ".",
 	// start:end:step array slice operator (Section 2.3.4)
 	ARRAY_SLICE: ":",
@@ -230,7 +232,6 @@ var tokens = [...]string{
 	PAREN_RIGHT:   ")",
 	BRACKET_LEFT:  "[",
 	BRACKET_RIGHT: "]",
-	COLON:         ":",
 	COMMA:         ",",
 	TILDE:         "~",
 	AND:           "&&",
@@ -243,6 +244,7 @@ var tokens = [...]string{
 	LT:            "<",
 	LE:            "<=",
 	MATCHES:       "=~",
+	FUNCTION:      "FUNCTION",
 }
 
 // String returns the string representation of the token.
@@ -275,8 +277,17 @@ func (tok Tokens) IsSimple() bool {
 }
 
 // When there's an error in the tokenizer, this helps represent it.
-func (t Tokenizer) ErrorString(target TokenInfo, msg string) string {
+func (t Tokenizer) ErrorString(target *TokenInfo, msg string) string {
 	var errorBuilder strings.Builder
+
+	var token TokenInfo
+	if target == nil {
+		// grab last token (as value)
+		token = t.tokens[len(t.tokens)-1]
+		// set column to +1
+		token.Column++
+		target = &token
+	}
 
 	// Write the error message with line and column information
 	errorBuilder.WriteString(fmt.Sprintf("Error at line %d, column %d: %s\n", target.Line, target.Column, msg))
@@ -311,11 +322,18 @@ func (t Tokenizer) ErrorString(target TokenInfo, msg string) string {
 }
 
 // When there's an error
-func (t Tokenizer) ErrorTokenString(target TokenInfo, msg string) string {
+func (t Tokenizer) ErrorTokenString(target *TokenInfo, msg string) string {
 	var errorBuilder strings.Builder
-
+	var token TokenInfo
+	if target == nil {
+		// grab last token (as value)
+		token = t.tokens[len(t.tokens)-1]
+		// set column to +1
+		token.Column++
+		target = &token
+	}
 	// Write the error message with line and column information
-	errorBuilder.WriteString(fmt.Sprintf("Error at line %d, column %d: %s\n", target.Line, target.Column, msg))
+	errorBuilder.WriteString(t.ErrorString(target, msg))
 
 	// Find the start and end positions of the line containing the target token
 	lineStart := 0
@@ -363,12 +381,13 @@ type Tokens []TokenInfo
 
 // Tokenizer represents a JSONPath tokenizer.
 type Tokenizer struct {
-	input  string
-	pos    int
-	line   int
-	column int
-	tokens []TokenInfo
-	stack  []Token
+	input             string
+	pos               int
+	line              int
+	column            int
+	tokens            []TokenInfo
+	stack             []Token
+	illegalWhitespace bool
 }
 
 // NewTokenizer creates a new JSONPath tokenizer for the given input string.
@@ -383,7 +402,9 @@ func NewTokenizer(input string) *Tokenizer {
 // Tokenize tokenizes the input string and returns a slice of TokenInfo.
 func (t *Tokenizer) Tokenize() Tokens {
 	for t.pos < len(t.input) {
-		t.skipWhitespace()
+		if !t.illegalWhitespace {
+			t.skipWhitespace()
+		}
 		if t.pos >= len(t.input) {
 			break
 		}
@@ -400,11 +421,13 @@ func (t *Tokenizer) Tokenize() Tokens {
 				t.addToken(RECURSIVE, 2, "")
 				t.pos++
 				t.column++
+				t.illegalWhitespace = true
 			} else {
 				t.addToken(CHILD, 1, "")
+				t.illegalWhitespace = true
 			}
 		case ch == ',':
-			t.addToken(UNION, 1, "")
+			t.addToken(COMMA, 1, "")
 		case ch == ':':
 			t.addToken(ARRAY_SLICE, 1, "")
 		case ch == '?':
@@ -483,6 +506,8 @@ func (t *Tokenizer) Tokenize() Tokens {
 			}
 		case ch == '"' || ch == '\'':
 			t.scanString(rune(ch))
+		case ch == '-' && isDigit(t.peek()):
+			fallthrough
 		case isDigit(ch):
 			t.scanNumber()
 		case isLiteralChar(ch):
@@ -505,40 +530,145 @@ func (t *Tokenizer) addToken(token Token, len int, literal string) {
 		Len:     len,
 		Literal: literal,
 	})
+	t.illegalWhitespace = false
 }
 
 func (t *Tokenizer) scanString(quote rune) {
 	start := t.pos + 1
-	escaped := false
+	var literal strings.Builder
+illegal:
 	for i := start; i < len(t.input); i++ {
-		if t.input[i] == byte(quote) && !escaped {
-			t.addToken(STRING, len(t.input[start:i]), t.input[start:i])
+		b := literal.String()
+		_ = b
+		if t.input[i] == byte(quote) {
+			t.addToken(STRING_LITERAL, len(t.input[start:i])+2, literal.String())
 			t.pos = i
 			t.column += i - start + 1
 			return
 		}
 		if t.input[i] == '\\' {
-			escaped = !escaped
+			i++
+			if i >= len(t.input) {
+				t.addToken(ILLEGAL, len(t.input[start:]), literal.String())
+				t.pos = len(t.input) - 1
+				t.column = len(t.input) - 1
+				return
+			}
+			switch t.input[i] {
+			case 'b':
+				literal.WriteByte('\b')
+			case 'f':
+				literal.WriteByte('\f')
+			case 'n':
+				literal.WriteByte('\n')
+			case 'r':
+				literal.WriteByte('\n')
+			case 't':
+				literal.WriteByte('\t')
+			case '\'':
+				if quote != '\'' {
+					// don't escape it, when we're not in a single quoted string
+					break illegal
+				} else {
+					literal.WriteByte(t.input[i])
+				}
+			case '"':
+				if quote != '"' {
+					// don't escape it, when we're not in a single quoted string
+					break illegal
+				} else {
+					literal.WriteByte(t.input[i])
+				}
+			case '\\', '/':
+				literal.WriteByte(t.input[i])
+			default:
+				break illegal
+			}
 		} else {
-			escaped = false
+			literal.WriteByte(t.input[i])
 		}
 	}
-	t.addToken(ILLEGAL, len(t.input[start:]), t.input[start:])
+	t.addToken(ILLEGAL, len(t.input[start:]), literal.String())
 	t.pos = len(t.input) - 1
 	t.column = len(t.input) - 1
 }
 
 func (t *Tokenizer) scanNumber() {
 	start := t.pos
+	tokenType := INTEGER
+	dotSeen := false
+	exponentSeen := false
+
 	for i := start; i < len(t.input); i++ {
+		if i == start && t.input[i] == '-' {
+			continue
+		}
+
+		if t.input[i] == '.' {
+			if dotSeen || exponentSeen {
+				t.addToken(ILLEGAL, len(t.input[start:i]), t.input[start:i])
+				t.pos = i
+				t.column += i - start
+				return
+			}
+			tokenType = FLOAT
+			dotSeen = true
+			continue
+		}
+
+		if t.input[i] == 'e' || t.input[i] == 'E' {
+			if exponentSeen || (len(t.input) > 0 && t.input[i-1] == '.') {
+				t.addToken(ILLEGAL, len(t.input[start:i]), t.input[start:i])
+				t.pos = i
+				t.column += i - start
+				return
+			}
+			tokenType = FLOAT
+			exponentSeen = true
+			if i+1 < len(t.input) && (t.input[i+1] == '+' || t.input[i+1] == '-') {
+				i++
+			}
+			continue
+		}
+
 		if !isDigit(t.input[i]) {
-			t.addToken(NUMBER, len(t.input[start:i]), t.input[start:i])
+			literal := t.input[start:i]
+			// check for legal numbers
+			_, err := strconv.ParseFloat(literal, 64)
+			if err != nil {
+				tokenType = ILLEGAL
+			}
+			// conformance spec
+			if len(literal) > 1 && literal[0] == '0' {
+				// no leading zero
+				tokenType = ILLEGAL
+			} else if len(literal) > 2 && literal[0] == '-' && literal[1] == '0' && !dotSeen {
+				// no trailing dot
+				tokenType = ILLEGAL
+			} else if len(literal) > 0 && literal[len(literal)-1] == '.' {
+				// no trailing dot
+				tokenType = ILLEGAL
+			} else if literal[len(literal)-1] == 'e' || literal[len(literal)-1] == 'E' {
+				// no exponent
+				tokenType = ILLEGAL
+			}
+
+			t.addToken(tokenType, len(literal), literal)
 			t.pos = i - 1
 			t.column += i - start - 1
 			return
 		}
 	}
-	t.addToken(NUMBER, len(t.input[start:]), t.input[start:])
+
+	if exponentSeen && !isDigit(t.input[len(t.input)-1]) {
+		t.addToken(ILLEGAL, len(t.input[start:]), t.input[start:])
+		t.pos = len(t.input) - 1
+		t.column = len(t.input) - 1
+		return
+	}
+
+	literal := t.input[start:]
+	t.addToken(tokenType, len(literal), literal)
 	t.pos = len(t.input) - 1
 	t.column = len(t.input) - 1
 }
@@ -546,15 +676,22 @@ func (t *Tokenizer) scanNumber() {
 func (t *Tokenizer) scanLiteral() {
 	start := t.pos
 	for i := start; i < len(t.input); i++ {
-		if !isLiteralChar(t.input[i]) {
+		if !isLiteralChar(t.input[i]) && !isDigit(t.input[i]) {
 			literal := t.input[start:i]
 			switch literal {
-			case "true", "false":
-				t.addToken(BOOLEAN, len(literal), literal)
+			case "true":
+				t.addToken(TRUE, len(literal), literal)
+			case "false":
+				t.addToken(FALSE, len(literal), literal)
 			case "null":
 				t.addToken(NULL, len(literal), literal)
 			default:
-				t.addToken(STRING_LITERAL, len(literal), literal)
+				if isFunctionName(literal) {
+					t.addToken(FUNCTION, len(literal), literal)
+					t.illegalWhitespace = true
+				} else {
+					t.addToken(STRING, len(literal), literal)
+				}
 			}
 			t.pos = i - 1
 			t.column += i - start - 1
@@ -563,15 +700,21 @@ func (t *Tokenizer) scanLiteral() {
 	}
 	literal := t.input[start:]
 	switch literal {
-	case "true", "false":
-		t.addToken(BOOLEAN, len(literal), literal)
+	case "true":
+		t.addToken(TRUE, len(literal), literal)
+	case "false":
+		t.addToken(FALSE, len(literal), literal)
 	case "null":
 		t.addToken(NULL, len(literal), literal)
 	default:
-		t.addToken(STRING_LITERAL, len(literal), literal)
+		t.addToken(STRING, len(literal), literal)
 	}
 	t.pos = len(t.input) - 1
 	t.column = len(t.input) - 1
+}
+
+func isFunctionName(literal string) bool {
+	return literal == "length" || literal == "count" || literal == "match" || literal == "search" || literal == "value"
 }
 
 func (t *Tokenizer) skipWhitespace() {
@@ -580,7 +723,7 @@ func (t *Tokenizer) skipWhitespace() {
 	//                         %x09 /    ; Horizontal tab
 	//                         %x0A /    ; Line feed or New line
 	//                         %x0D      ; Carriage return
-	for t.pos < len(t.input) {
+	for len(t.tokens) > 0 && t.pos+1 < len(t.input) {
 		ch := t.input[t.pos]
 		if ch == '\n' {
 			t.line++
@@ -607,7 +750,8 @@ func isDigit(ch byte) bool {
 }
 
 func isLiteralChar(ch byte) bool {
-	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
+	// allow unicode characters
+	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || ch >= 0x80
 }
 
 func isSpace(ch byte) bool {
