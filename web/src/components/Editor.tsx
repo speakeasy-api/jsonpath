@@ -13,6 +13,7 @@ export interface EditorComponentProps {
   readonly: boolean;
   value: string;
   loading?: boolean;
+  title?: string;
   onChange: (
     value: string | undefined,
     ev: editor.IModelContentChangedEvent,
@@ -124,6 +125,13 @@ export function Editor(props: EditorComponentProps) {
           value={progress}
           className="absolute top-0 left-0 w-full h-1 z-10"
         />
+      )}
+      {props.title && (
+        <div style={{ background: "#212015", padding: "1rem" }}>
+          <h1 className="text-xl font-semibold leading-none tracking-tight">
+            {props.title}
+          </h1>
+        </div>
       )}
       <MonacoEditor
         onMount={handleEditorDidMount}
