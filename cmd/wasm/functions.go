@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
 	"github.com/speakeasy-api/jsonpath/pkg/overlay"
 	"gopkg.in/yaml.v3"
 	"syscall/js"
@@ -31,6 +32,39 @@ func CalculateOverlay(originalYAML, targetYAML string) (string, error) {
 	}
 
 	return string(out), nil
+}
+
+func GetInfo(originalYAML string) (string, error) {
+	var orig yaml.Node
+	err := yaml.Unmarshal([]byte(originalYAML), &orig)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse source schema: %w", err)
+	}
+
+	titlePath, err := jsonpath.NewPath("$.info.title")
+	if err != nil {
+		return "", err
+	}
+	versionPath, err := jsonpath.NewPath("$.info.version")
+	if err != nil {
+		return "", err
+	}
+	descriptionPath, err := jsonpath.NewPath("$.info.version")
+	if err != nil {
+		return "", err
+	}
+	toString := func(node []*yaml.Node) string {
+		if len(node) == 0 {
+			return ""
+		}
+		return node[0].Value
+	}
+
+	return `{
+    "title": "` + toString(titlePath.Query(&orig)) + `",
+    "version": "` + toString(versionPath.Query(&orig)) + `",
+    "description": "` + toString(descriptionPath.Query(&orig)) + `"
+}`, nil
 }
 
 func ApplyOverlay(originalYAML, overlayYAML string) (string, error) {
@@ -109,6 +143,14 @@ func main() {
 		}
 
 		return ApplyOverlay(args[0].String(), args[1].String())
+	}))
+
+	js.Global().Set("GetInfo", promisify(func(args []js.Value) (string, error) {
+		if len(args) != 1 {
+			return "", fmt.Errorf("GetInfo: expected 1 arg, got %v", len(args))
+		}
+
+		return GetInfo(args[0].String())
 	}))
 
 	<-make(chan bool)

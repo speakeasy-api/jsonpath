@@ -1,11 +1,16 @@
 // openapi.web.worker.ts
 import speakeasyWASM from "./assets/wasm/lib.wasm?url";
 import "./assets/wasm/wasm_exec.js";
-import type { CalculateOverlayMessage, ApplyOverlayMessage } from "./bridge";
+import type {
+  CalculateOverlayMessage,
+  ApplyOverlayMessage,
+  GetInfoMessage,
+} from "./bridge";
 
 const _wasmExecutors = {
   CalculateOverlay: (..._: any): any => false,
   ApplyOverlay: (..._: any): any => false,
+  GetInfo: (..._: any): any => false,
 } as const;
 
 type MessageHandlers = {
@@ -20,6 +25,9 @@ const messageHandlers: MessageHandlers = {
   },
   ApplyOverlay: async (payload: ApplyOverlayMessage["Request"]["payload"]) => {
     return exec("ApplyOverlay", payload.source, payload.overlay);
+  },
+  GetInfo: async (payload: GetInfoMessage["Request"]["payload"]) => {
+    return exec("GetInfo", payload.openapi);
   },
 };
 
