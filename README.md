@@ -225,3 +225,4 @@ This application is included in the [speakeasy](https://github.com/speakeasy-api
 
 ## Contributing
 
+We welcome contributions to this repository! Please open a Github issue or a Pull Request if you have an implementation for a bug fix or feature. This repository is compliant with the [jsonpath standard compliance test suite](https://github.com/jsonpath-standard/jsonpath-compliance-test-suite/tree/9277705cda4489c3d0d984831e7656e48145399b) 
