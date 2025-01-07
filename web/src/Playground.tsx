@@ -3,10 +3,13 @@ import "./App.css";
 import { Editor } from "./components/Editor.tsx";
 import { editor } from "monaco-editor";
 import { ApplyOverlay, CalculateOverlay, GetInfo } from "./bridge.ts";
-import { Alert, PageHeader } from "@speakeasy-api/moonshine";
+import { Alert } from "@speakeasy-api/moonshine";
 import { blankOverlay, petstore } from "./defaults.ts";
 import { useAtom } from "jotai";
 import { atomWithHash } from "jotai-location";
+import speakeasyWhiteLogo from "./assets/speakeasy-white.svg";
+import speakeasyBlackLogo from "./assets/speakeasy-black.svg";
+import openapiLogo from "./assets/openapi.svg";
 
 const originalOpenAPI = atomWithHash("originalOpenAPI", petstore);
 const changedOpenAPI = atomWithHash("changedOpenAPI", petstore);
@@ -106,7 +109,6 @@ function Playground() {
     <div
       style={{
         display: "flex",
-        color: "white",
         flexDirection: "column",
         alignItems: "center",
         minHeight: "100vh",
@@ -114,13 +116,81 @@ function Playground() {
       }}
     >
       <div style={{ paddingBottom: "1rem", width: "100vw" }}>
-        <PageHeader
-          image="https://avatars.githubusercontent.com/u/91446104?s=200&v=4"
-          subtitle="Best in class API tooling for robust SDKs, Terraform Providers and End to End Testing. OpenAPI Native."
-          title="Speakeasy OpenAPI Overlay Playground"
-        >
-          <div style={{ width: "100%" }} />
-        </PageHeader>
+        <div className="border-b border-muted p-4 md:p-6 text-left">
+          <div className="flex gap-2">
+            <div className="flex flex-1">
+              <div className="flex items-center pr-2">
+                <img
+                  src={openapiLogo}
+                  alt="OpenAPI Logo"
+                  className="h-12 w-12 shrink-0 grow-0 origin-center rotate-180 rounded-full"
+                />
+              </div>
+              <div className="grow-1">
+                <h1 className="text-xl font-semibold leading-none tracking-tight">
+                  <a
+                    className="underline hover:no-underline pr-1"
+                    href="https://github.com/OAI/Overlay-Specification"
+                  >
+                    OpenAPI Overlay
+                  </a>
+                  Playground
+                </h1>
+                <p className="max-w-prose text-sm text-muted-foreground pt-2">
+                  The OpenAPI Overlay Specification lets you update arbitrary
+                  values in an YAML document using{" "}
+                  <a
+                    className="border-b border-transparent pb-[2px] transition-all duration-200 hover:border-current"
+                    href="https://datatracker.ietf.org/doc/rfc9535/"
+                  >
+                    jsonpath
+                  </a>
+                  .
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-1 flex-row-reverse">
+              <ul className="flex gap-x-2">
+                <li>
+                  <a
+                    className="border-b border-transparent pb-[2px] transition-all duration-200 hover:border-current"
+                    href="https://www.speakeasy.com"
+                  >
+                    Made by the team at{" "}
+                    <span className="sr-only">Speakeasy</span>
+                    <picture>
+                      <source
+                        srcSet={speakeasyWhiteLogo}
+                        media="(prefers-color-scheme: dark)"
+                      />
+                      <img
+                        className="inline-block h-3 w-auto align-baseline"
+                        src={speakeasyBlackLogo}
+                        alt=""
+                      />
+                    </picture>
+                  </a>
+                </li>
+                <li className="before:pe-2 before:content-['•']">
+                  <a
+                    className="border-b border-transparent pb-[2px] transition-all duration-200 hover:border-current"
+                    href="https://github.com/speakeasy-api/jsonpath"
+                  >
+                    GitHub
+                  </a>
+                </li>
+                <li className="before:pe-2 before:content-['•']">
+                  <a
+                    className="border-b border-transparent pb-[2px] transition-all duration-200 hover:border-current"
+                    href="https://github.com/OAI/Overlay-Specification"
+                  >
+                    OpenAPI Overlay
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
       {error && <Alert variant={"error"}>{error}</Alert>}
       <div
