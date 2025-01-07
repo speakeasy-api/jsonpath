@@ -199,6 +199,7 @@ function Playground() {
           width: "100%",
           justifyContent: "space-between",
           gap: "1rem",
+          overflow: "hidden",
         }}
       >
         <div style={{ height: "calc(100vh - 50px)", width: "33vw" }}>
