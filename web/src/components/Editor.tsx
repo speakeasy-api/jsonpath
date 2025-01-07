@@ -1,21 +1,33 @@
-import { useRef } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import MonacoEditor, { Monaco } from "@monaco-editor/react";
 import { editor } from "monaco-editor";
+import { Progress } from "../../@/components/ui/progress.tsx";
 
 export interface EditorComponentProps {
   readonly: boolean;
   value: string;
+  loading?: boolean;
   onChange: (
     value: string | undefined,
     ev: editor.IModelContentChangedEvent,
   ) => void;
 }
 
+const minLoadingTime = 150;
+
 export function Editor(props: EditorComponentProps) {
   const editorRef = useRef<any>(null);
-  const monacoRef = useRef<any>(null);
+  const monacoRef = useRef<Monaco | null>(null);
+  const [lastLoadingTime, setLastLoadingTime] = useState(minLoadingTime);
+  const [progress, setProgress] = useState(100);
 
-  function handleEditorDidMount(editor: any, monaco: Monaco) {
+  const handleEditorDidMount = useCallback((editor: any, monaco: Monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
 
@@ -48,21 +60,79 @@ export function Editor(props: EditorComponentProps) {
     // @ts-ignore
     monaco.editor.defineTheme("speakeasy", options);
     monaco.editor.setTheme("speakeasy");
-  }
+  }, []);
 
-  const options: any = {
-    readOnly: props.readonly,
-    minimap: { enabled: false },
-  };
+  const options: any = useMemo(
+    () => ({
+      readOnly: props.readonly,
+      minimap: { enabled: false },
+    }),
+    [props.readonly],
+  );
+  const isLoading = useMemo(
+    () => props.loading || progress < 100,
+    [props.loading, progress],
+  );
+
+  useEffect(() => {
+    if (props.loading) {
+      const startTime = Date.now();
+
+      return () => {
+        const endTime = Date.now();
+        setLastLoadingTime(Math.max(minLoadingTime, endTime - startTime));
+      };
+    }
+  }, [props.loading]);
+
+  useEffect(() => {
+    if (isLoading) {
+      const timer = setInterval(() => {
+        setProgress((prevProgress) => {
+          if (prevProgress >= 100) {
+            clearInterval(timer);
+            return 100;
+          }
+          return prevProgress + 10;
+        });
+      }, lastLoadingTime / 10);
+      setProgress(0);
+    }
+  }, [isLoading]);
+
+  const wrapperStyles = useMemo(() => {
+    if (isLoading) {
+      return {
+        width: "100%",
+        height: "100%",
+        filter: "blur(1px)",
+        position: "relative",
+      } satisfies React.CSSProperties;
+    }
+    return {
+      width: "100%",
+      height: "100%",
+      position: "relative",
+    } satisfies React.CSSProperties;
+  }, [isLoading]);
 
   return (
-    <MonacoEditor
-      onMount={handleEditorDidMount}
-      value={props.value}
-      onChange={props.onChange}
-      theme={"vscode-dark"}
-      language="yaml"
-      options={options}
-    />
+    <div style={wrapperStyles}>
+      {progress < 100 && minLoadingTime < lastLoadingTime && (
+        <Progress
+          max={100}
+          value={progress}
+          className="absolute top-0 left-0 w-full h-1 z-10"
+        />
+      )}
+      <MonacoEditor
+        onMount={handleEditorDidMount}
+        value={props.value}
+        onChange={props.onChange}
+        theme={"vscode-dark"}
+        language="yaml"
+        options={options}
+      />
+    </div>
   );
 }

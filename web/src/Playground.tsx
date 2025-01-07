@@ -1,19 +1,26 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import "./App.css";
 import { Editor } from "./components/Editor.tsx";
 import { editor } from "monaco-editor";
 import { ApplyOverlay, CalculateOverlay } from "./bridge.ts";
-import { Alert, Badge, PageHeader } from "@speakeasy-api/moonshine";
+import { Alert, PageHeader } from "@speakeasy-api/moonshine";
 import { blankOverlay, petstore } from "./defaults.ts";
+import { useAtom } from "jotai";
+import { atomWithHash } from "jotai-location";
+
+const originalOpenAPI = atomWithHash("originalOpenAPI", petstore);
+const changedOpenAPI = atomWithHash("changedOpenAPI", petstore);
+const overlay = atomWithHash("overlay", blankOverlay);
 
 function Playground() {
   const [ready, setReady] = useState(false);
-  const [original, setOriginal] = useState(petstore);
-  const [executing, setExecuting] = useState(false);
-  const [changed, setChanged] = useState(petstore);
-  const [result, setResult] = useState(blankOverlay);
+
+  const [original, setOriginal] = useAtom(originalOpenAPI);
+  const [changed, setChanged] = useAtom(changedOpenAPI);
+  const [changedLoading, setChangedLoading] = useState(false);
+  const [result, setResult] = useAtom(overlay);
+  const [resultLoading, setResultLoading] = useState(false);
   const [error, setError] = useState("");
-  const isLoading = useMemo(() => !ready && !executing, [ready, executing]);
   useEffect(() => {
     (async () => {
       setReady(true);
@@ -22,7 +29,7 @@ function Playground() {
   const onChangeA = useCallback(
     async (value: string | undefined, _: editor.IModelContentChangedEvent) => {
       try {
-        setExecuting(true);
+        setResultLoading(true);
         setOriginal(value || "");
         const res = await CalculateOverlay(value || "", changed, true);
         setResult(res);
@@ -32,7 +39,7 @@ function Playground() {
           setError(e.message);
         }
       } finally {
-        setExecuting(false);
+        setResultLoading(false);
       }
     },
     [changed, original],
@@ -40,7 +47,7 @@ function Playground() {
   const onChangeB = useCallback(
     async (value: string | undefined, _: editor.IModelContentChangedEvent) => {
       try {
-        setExecuting(true);
+        setResultLoading(true);
         setChanged(value || "");
         const res = await CalculateOverlay(original, value || "", true);
         setResult(res);
@@ -50,7 +57,7 @@ function Playground() {
           setError(e.message);
         }
       } finally {
-        setExecuting(false);
+        setResultLoading(false);
       }
     },
     [changed, original],
@@ -59,7 +66,7 @@ function Playground() {
   const onChangeC = useCallback(
     async (value: string | undefined, _: editor.IModelContentChangedEvent) => {
       try {
-        setExecuting(true);
+        setChangedLoading(true);
         setResult(value || "");
         const res = await ApplyOverlay(original, value || "", true);
         setChanged(res);
@@ -69,7 +76,7 @@ function Playground() {
           setError(e.message);
         }
       } finally {
-        setExecuting(false);
+        setChangedLoading(false);
       }
     },
     [changed, original],
@@ -96,11 +103,7 @@ function Playground() {
           subtitle="Best in class API tooling for robust SDKs, Terraform Providers and End to End Testing. OpenAPI Native."
           title="Speakeasy OpenAPI Overlay Playground"
         >
-          <div style={{ width: "100%" }}>
-            <div className="mt-2">
-              {isLoading && <Badge variant="default">Loading</Badge>}
-            </div>
-          </div>
+          <div style={{ width: "100%" }} />
         </PageHeader>
       </div>
       {error && <Alert variant={"error"}>{error}</Alert>}
@@ -112,14 +115,24 @@ function Playground() {
           justifyContent: "space-between",
         }}
       >
-        <div style={{ height: "100vh", width: "33vw" }}>
+        <div style={{ height: "calc(100vh - 50px)", width: "33vw" }}>
           <Editor readonly={false} value={original} onChange={onChangeA} />
         </div>
-        <div style={{ height: "100vh", width: "33vw" }}>
-          <Editor readonly={false} value={changed} onChange={onChangeB} />
+        <div style={{ height: "calc(100vh - 50px)", width: "33vw" }}>
+          <Editor
+            readonly={false}
+            value={changed}
+            onChange={onChangeB}
+            loading={changedLoading}
+          />
         </div>
-        <div style={{ height: "100vh", width: "33vw" }}>
-          <Editor readonly={false} value={result} onChange={onChangeC} />
+        <div style={{ height: "calc(100vh - 50px)", width: "33vw" }}>
+          <Editor
+            readonly={false}
+            value={result}
+            onChange={onChangeC}
+            loading={resultLoading}
+          />
         </div>
       </div>
     </div>
