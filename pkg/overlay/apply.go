@@ -1,7 +1,7 @@
 package overlay
 
 import (
-	"github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath"
+	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
 	"gopkg.in/yaml.v3"
 )
 
@@ -31,12 +31,12 @@ func applyRemoveAction(root *yaml.Node, action Action) error {
 
 	idx := newParentIndex(root)
 
-	p, err := yamlpath.NewPath(action.Target)
+	p, err := jsonpath.NewPath(action.Target)
 	if err != nil {
 		return err
 	}
 
-	nodes, err := p.Find(root)
+	nodes := p.Query(root)
 	if err != nil {
 		return err
 	}
@@ -78,15 +78,12 @@ func applyUpdateAction(root *yaml.Node, action Action) error {
 		return nil
 	}
 
-	p, err := yamlpath.NewPath(action.Target)
+	p, err := jsonpath.NewPath(action.Target)
 	if err != nil {
 		return err
 	}
 
-	nodes, err := p.Find(root)
-	if err != nil {
-		return err
-	}
+	nodes := p.Query(root)
 
 	for _, node := range nodes {
 		if err := updateNode(node, action.Update); err != nil {

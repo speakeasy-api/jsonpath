@@ -51,7 +51,7 @@ func TestJSONPathComplianceTestSuite(t *testing.T) {
 	for _, test := range testSuite.Tests {
 		t.Run(test.Name, func(t *testing.T) {
 			// Test case for a valid selector
-			jp, err := jsonpath.NewJSONPath(test.Selector)
+			jp, err := jsonpath.NewPath(test.Selector)
 			if test.InvalidSelector {
 				require.Error(t, err, "Expected an error for invalid selector, but got none")
 				return

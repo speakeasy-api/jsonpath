@@ -6,7 +6,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func NewJSONPath(input string) (*JSONPath, error) {
+func NewPath(input string) (*JSONPath, error) {
 	tokenizer := token.NewTokenizer(input)
 	tokens := tokenizer.Tokenize()
 	for i := 0; i < len(tokens); i++ {
