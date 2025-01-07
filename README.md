@@ -19,9 +19,9 @@
 
 This is a full implementation of [RFC 9535](https://datatracker.ietf.org/doc/rfc9535/)
 
-It is build to be webasm compatible. A playground application is also included.
+It is build to be webasm compatible. A playground application is available at https://overlay.speakeasy.com.
 
-Everything within RFC9535 is in scope. Grammars outside RFC 9535 are not in scope. For using `=~` to dynamically represent a matched regex is not in scope.
+Everything within RFC9535 is in scope. Grammars outside RFC 9535 are not in scope.
 
 ## Installation
 
