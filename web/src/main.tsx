@@ -6,7 +6,7 @@ import posthog from "posthog-js";
 
 if (process.env.PUBLIC_POSTHOG_API_KEY) {
   posthog.init(process.env.PUBLIC_POSTHOG_API_KEY, {
-    api_host: "https://us.i.posthog.com",
+    api_host: "https://metrics.speakeasy.com",
     person_profiles: "identified_only",
   });
 }
