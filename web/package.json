@@ -20,6 +20,7 @@
     "jotai-location": "^0.5.5",
     "lucide-react": "^0.469.0",
     "monaco-editor": "0.48.0",
+    "posthog-js": "^1.205.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tailwind-merge": "^2.6.0",

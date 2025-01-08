@@ -11,6 +11,7 @@ export default defineConfig({
     global: {},
     // importing moonshine error'd without this.
     "process.env.VSCODE_TEXTMATE_DEBUG": "false",
+    "process.env.PUBLIC_POSTHOG_API_KEY": process.env.PUBLIC_POSTHOG_API_KEY,
   },
   resolve: {
     alias: {
