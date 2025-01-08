@@ -3,41 +3,61 @@ package jsonpath
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
-type SelectorSubKind int
+type selectorSubKind int
 
 const (
-	SelectorSubKindWildcard SelectorSubKind = iota
-	SelectorSubKindName
-	SelectorSubKindArraySlice
-	SelectorSubKindArrayIndex
-	SelectorSubKindFilter
+	selectorSubKindWildcard selectorSubKind = iota
+	selectorSubKindName
+	selectorSubKindArraySlice
+	selectorSubKindArrayIndex
+	selectorSubKindFilter
 )
 
-type Slice struct {
-	Start *int
-	End   *int
-	Step  *int
+type slice struct {
+	start *int
+	end   *int
+	step  *int
 }
 
-type Selector struct {
-	Kind   SelectorSubKind
+type selector struct {
+	kind   selectorSubKind
 	name   string
 	index  int
-	slice  *Slice
+	slice  *slice
 	filter *filterSelector
 }
 
-func (s Selector) ToString() string {
-	switch s.Kind {
-	case SelectorSubKindName:
-		return "\"" + s.name + "\""
-	case SelectorSubKindArrayIndex:
+func (s selector) ToString() string {
+	switch s.kind {
+	case selectorSubKindName:
+		return "'" + escapeString(s.name) + "'"
+	case selectorSubKindArrayIndex:
 		// int to string
-		return "[" + strconv.Itoa(s.index) + "]"
+		return strconv.Itoa(s.index)
+	case selectorSubKindFilter:
+		return "?" + s.filter.ToString()
+	case selectorSubKindWildcard:
+		return "*"
+	case selectorSubKindArraySlice:
+		builder := strings.Builder{}
+		if s.slice.start != nil {
+			builder.WriteString(strconv.Itoa(*s.slice.start))
+		}
+		builder.WriteString(":")
+		if s.slice.end != nil {
+			builder.WriteString(strconv.Itoa(*s.slice.end))
+		}
+
+		if s.slice.step != nil {
+			builder.WriteString(":")
+			builder.WriteString(strconv.Itoa(*s.slice.step))
+		}
+		return builder.String()
 	default:
-		panic(fmt.Sprintf("unimplemented selector kind: %v", s.Kind))
+		panic(fmt.Sprintf("unimplemented selector kind: %v", s.kind))
 	}
 	return ""
 }

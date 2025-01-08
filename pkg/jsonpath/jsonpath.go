@@ -25,3 +25,10 @@ func NewPath(input string) (*JSONPath, error) {
 func (p *JSONPath) Query(root *yaml.Node) []*yaml.Node {
 	return p.ast.Query(root, root)
 }
+
+func (p *JSONPath) String() string {
+	if p == nil {
+		return ""
+	}
+	return p.ast.ToString()
+}

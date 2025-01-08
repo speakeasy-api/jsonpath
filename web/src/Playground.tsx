@@ -149,7 +149,7 @@ function Playground() {
                   <Link href="https://github.com/OAI/Overlay-Specification">
                     OpenAPI Overlay Specification
                   </Link>{" "}
-                  lets you update arbitrary values in an YAML document using{" "}
+                  lets you update arbitrary values in a YAML document using{" "}
                   <Link href="https://datatracker.ietf.org/doc/rfc9535/">
                     jsonpath
                   </Link>

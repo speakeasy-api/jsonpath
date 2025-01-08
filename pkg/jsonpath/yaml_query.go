@@ -110,9 +110,9 @@ func (s innerSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 
 }
 
-func (s Selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
-	switch s.Kind {
-	case SelectorSubKindName:
+func (s selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
+	switch s.kind {
+	case selectorSubKindName:
 		if value.Kind != yaml.MappingNode {
 			return nil
 		}
@@ -127,7 +127,7 @@ func (s Selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 				return []*yaml.Node{child}
 			}
 		}
-	case SelectorSubKindArrayIndex:
+	case selectorSubKindArrayIndex:
 		if value.Kind != yaml.SequenceNode {
 			return nil
 		}
@@ -140,7 +140,7 @@ func (s Selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 			return []*yaml.Node{value.Content[len(value.Content)+s.index]}
 		}
 		return []*yaml.Node{value.Content[s.index]}
-	case SelectorSubKindWildcard:
+	case selectorSubKindWildcard:
 		if value.Kind == yaml.SequenceNode {
 			return value.Content
 		} else if value.Kind == yaml.MappingNode {
@@ -153,7 +153,7 @@ func (s Selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 			return result
 		}
 		return nil
-	case SelectorSubKindArraySlice:
+	case selectorSubKindArraySlice:
 		if value.Kind != yaml.SequenceNode {
 			return nil
 		}
@@ -161,14 +161,14 @@ func (s Selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 			return nil
 		}
 		step := 1
-		if s.slice.Step != nil {
-			step = *s.slice.Step
+		if s.slice.step != nil {
+			step = *s.slice.step
 		}
 		if step == 0 {
 			return nil
 		}
 
-		start, end := s.slice.Start, s.slice.End
+		start, end := s.slice.start, s.slice.end
 		lower, upper := bounds(start, end, step, len(value.Content))
 
 		var result []*yaml.Node
@@ -183,7 +183,7 @@ func (s Selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 		}
 
 		return result
-	case SelectorSubKindFilter:
+	case selectorSubKindFilter:
 		var result []*yaml.Node
 		switch value.Kind {
 		case yaml.MappingNode:
