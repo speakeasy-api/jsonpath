@@ -2,7 +2,6 @@ package overlay_test
 
 import (
 	"bytes"
-	"github.com/speakeasy-api/openapi-overlay/pkg/loader"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
@@ -41,10 +40,10 @@ func NodeMatchesFile(
 func TestApplyTo(t *testing.T) {
 	t.Parallel()
 
-	node, err := loader.LoadSpecification("testdata/openapi.yaml")
+	node, err := LoadSpecification("testdata/openapi.yaml")
 	require.NoError(t, err)
 
-	o, err := loader.LoadOverlay("testdata/overlay.yaml")
+	o, err := LoadOverlay("testdata/overlay.yaml")
 	require.NoError(t, err)
 
 	err = o.ApplyTo(node)
