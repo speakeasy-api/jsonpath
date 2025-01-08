@@ -54,11 +54,17 @@ func TestJSONPathComplianceTestSuite(t *testing.T) {
 			// Test case for a valid selector
 			jp, err := jsonpath.NewPath(test.Selector)
 			if test.InvalidSelector {
-				require.Error(t, err, "Expected an error for invalid selector, but got none")
+				require.Error(t, err, "Expected an error for invalid selector, but got none for path", jp.String())
 				return
 			} else {
-				require.NoError(t, err, "Failed to parse JSONPath selector")
+				require.NoError(t, err, "Failed to parse JSONPath selector", jp.String())
 			}
+
+			// expect stability of ToString()
+			stringified := jp.String()
+			recursive, err := jsonpath.NewPath(stringified)
+			require.NoError(t, err, "Failed to parse recursive JSONPath selector. expected=%s got=%s", test.Selector, jp.String())
+			require.Equal(t, stringified, recursive.String(), "JSONPath selector does not match test case")
 			// interface{} to yaml.Node
 			toYAML := func(i interface{}) *yaml.Node {
 				o, err := yaml.Marshal(i)

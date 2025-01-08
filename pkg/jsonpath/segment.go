@@ -15,7 +15,7 @@ type segmentSubKind int
 const (
 	segmentDotWildcard   segmentSubKind = iota // .*
 	segmentDotMemberName                       // .property
-	segmentLongHand                            // [ Selector[] ]
+	segmentLongHand                            // [ selector[] ]
 )
 
 func (s segment) ToString() string {
@@ -35,7 +35,7 @@ func (s segment) ToString() string {
 type innerSegment struct {
 	kind      segmentSubKind
 	dotName   string
-	selectors []*Selector
+	selectors []*selector
 }
 
 func (s innerSegment) ToString() string {
@@ -52,7 +52,7 @@ func (s innerSegment) ToString() string {
 		for i, selector := range s.selectors {
 			builder.WriteString(selector.ToString())
 			if i < len(s.selectors)-1 {
-				builder.WriteString(",")
+				builder.WriteString(", ")
 			}
 		}
 		builder.WriteString("]")

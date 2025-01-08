@@ -639,7 +639,7 @@ func (t *Tokenizer) scanNumber() {
 				tokenType = ILLEGAL
 			}
 			// conformance spec
-			if len(literal) > 1 && literal[0] == '0' {
+			if len(literal) > 1 && literal[0] == '0' && !dotSeen {
 				// no leading zero
 				tokenType = ILLEGAL
 			} else if len(literal) > 2 && literal[0] == '-' && literal[1] == '0' && !dotSeen {
