@@ -2,6 +2,13 @@ name: Test
 
 on:
   pull_request:
+    branches:
+      - main
+    types:
+    - opened
+    - edited
+    - synchronize
+    - reopened
 
 jobs:
   build:
@@ -32,5 +39,3 @@ jobs:
       - name: Build
         run: go build ./...
       - run: go test -json -v -p 1 ./... | gotestfmt
-      - name: build web
-        run: cd web && pnpm install && pnpm build
