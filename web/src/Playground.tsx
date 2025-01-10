@@ -10,9 +10,15 @@ import { atomWithHash } from "jotai-location";
 import speakeasyWhiteLogo from "./assets/speakeasy-white.svg";
 import openapiLogo from "./assets/openapi.svg";
 
-const originalOpenAPI = atomWithHash("originalOpenAPI", petstore);
-const changedOpenAPI = atomWithHash("changedOpenAPI", petstore);
-const overlay = atomWithHash("overlay", blankOverlay);
+const originalOpenAPI = atomWithHash("originalOpenAPI", petstore, {
+  setHash: "replaceState",
+});
+const changedOpenAPI = atomWithHash("changedOpenAPI", petstore, {
+  setHash: "replaceState",
+});
+const overlay = atomWithHash("overlay", blankOverlay, {
+  setHash: "replaceState",
+});
 
 function Playground() {
   const [ready, setReady] = useState(false);
