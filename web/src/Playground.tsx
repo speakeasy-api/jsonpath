@@ -6,18 +6,19 @@ import { ApplyOverlay, CalculateOverlay, GetInfo } from "./bridge.ts";
 import { Alert } from "@speakeasy-api/moonshine";
 import { blankOverlay, petstore } from "./defaults.ts";
 import { useAtom } from "jotai";
-import { atomWithHash } from "jotai-location";
+import { throttledPushState } from "./url.ts";
 import speakeasyWhiteLogo from "./assets/speakeasy-white.svg";
 import openapiLogo from "./assets/openapi.svg";
+import { atomWithHash } from "jotai-location";
 
 const originalOpenAPI = atomWithHash("originalOpenAPI", petstore, {
-  setHash: "replaceState",
+  setHash: throttledPushState,
 });
 const changedOpenAPI = atomWithHash("changedOpenAPI", petstore, {
-  setHash: "replaceState",
+  setHash: throttledPushState,
 });
 const overlay = atomWithHash("overlay", blankOverlay, {
-  setHash: "replaceState",
+  setHash: throttledPushState,
 });
 
 function Playground() {
