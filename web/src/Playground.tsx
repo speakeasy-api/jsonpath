@@ -82,7 +82,6 @@ function Playground() {
         history.pushState(null, "", currentUrl.toString());
         posthog.capture("overlay.speakeasy.com:share", {
           openapi: JSON.parse(info),
-          currentUrl: currentUrl.toString(),
         });
       } else {
         setError("Failed to create share URL");
@@ -115,12 +114,8 @@ function Playground() {
 
           const changed = await ApplyOverlay(original, result, false);
           const info = await GetInfo(original, false);
-          const bestURL = new URL(window.location.href);
-          bestURL.searchParams.set("s", hash);
-          bestURL.hash = "";
           posthog.capture("overlay.speakeasy.com:load-shared", {
             openapi: JSON.parse(info),
-            currentUrl: bestURL.toString(),
           });
 
           setChanged(changed);

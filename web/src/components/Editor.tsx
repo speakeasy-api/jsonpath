@@ -67,6 +67,7 @@ export function Editor(props: EditorComponentProps) {
     () => ({
       readOnly: props.readonly,
       minimap: { enabled: false },
+      automaticLayout: true,
     }),
     [props.readonly],
   );
