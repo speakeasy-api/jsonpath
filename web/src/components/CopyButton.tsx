@@ -41,7 +41,7 @@ export function CopyButton({
     <Button
       size="icon"
       variant={variant}
-      className={cn("flex grow relative", className)}
+      className={cn("flex grow relative border-none", className)}
       onClick={() => {
         copyToClipboardWithMeta(value);
         setHasCopied(true);
