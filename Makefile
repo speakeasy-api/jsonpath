@@ -1,8 +1,6 @@
 
 SOURCE=$(shell find . -iname "*.go")
 
-
-
 web/src/assets/wasm/lib.wasm: $(SOURCE)
 	mkdir -p dist
 	rm -f dist/*

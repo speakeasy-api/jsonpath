@@ -12,7 +12,12 @@ export function POST(request: Request) {
   }
 
   return new Promise<Response>((resolve, reject) => {
-    const body: ReadableStream = request.body;
+    const body: ReadableStream | null = request.body;
+    if (!body) {
+      reject(new Error("No body"));
+      return;
+    }
+
     const reader = body.getReader();
     const chunks: Uint8Array[] = [];
 
