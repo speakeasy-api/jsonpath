@@ -2,12 +2,13 @@ import { put } from "@vercel/blob";
 import { createHash } from "crypto";
 
 const MAX_DATA_SIZE = 5 * 1024 * 1024; // 5MB
-const AllowedOrigin = process.env.VERCEL_URL ?? "http://localhost";
+const AllowedOrigin = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost";
+const productionOrigin = "https://overlay.speakeasy.com";
 
 export function POST(request: Request) {
   const origin = request.headers.get("Origin");
 
-  if (!origin || !origin.includes(AllowedOrigin)) {
+  if (!origin || (!origin.startsWith(AllowedOrigin) && !origin.startsWith(productionOrigin))) {
     return new Response("Unauthorized", { status: 403 });
   }
 
