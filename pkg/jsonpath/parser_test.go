@@ -1,89 +1,91 @@
-package jsonpath
+package jsonpath_test
 
 import (
-	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/token"
+	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
+	"github.com/stretchr/testify/require"
 	"testing"
 )
 
 func TestParser(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		expected string
+		name    string
+		input   string
+		invalid bool
 	}{
 		{
-			name:     "Root node",
-			input:    "$",
-			expected: "$\n",
+			name:  "Root node",
+			input: "$",
 		},
 		{
-			name:     "Single Dot child",
-			input:    "$.store",
-			expected: "$\n├── store\n└── book\n",
+			name:  "Single Dot child",
+			input: "$.store",
 		},
 		{
-			name:     "Single Bracket child",
-			input:    "$['store']",
-			expected: "$\n├── store\n",
+			name:  "Single Bracket child",
+			input: "$['store']",
 		},
 		{
-			name:     "Bracket child",
-			input:    "$['store']['book']",
-			expected: "$\n├── ['store']\n└── ['book']\n",
+			name:  "Bracket child",
+			input: "$['store']['book']",
 		},
 		{
-			name:     "Array index",
-			input:    "$[0]",
-			expected: "$\n└── [0]\n",
+			name:  "Array index",
+			input: "$[0]",
 		},
 		{
-			name:     "Array slice",
-			input:    "$[1:3]",
-			expected: "$\n└── [1:3]\n   ├── 1\n   └── 3\n",
+			name:  "Array slice",
+			input: "$[1:3]",
 		},
 		{
-			name:     "Array slice with step",
-			input:    "$[0:5:2]",
-			expected: "$\n└── [0:5:2]\n   ├── 0\n   ├── 5\n   └── 2\n",
+			name:  "Array slice with step",
+			input: "$[0:5:2]",
 		},
 		{
-			name:     "Array slice with negative step",
-			input:    "$[5:1:-2]",
-			expected: "$\n└── [5:1:-2]\n   ├── 5\n   ├── 1\n   └── -2\n",
+			name:  "Array slice with negative step",
+			input: "$[5:1:-2]",
 		},
 		{
-			name:     "Filter expression",
-			input:    "$[?(@.price < 10)]",
-			expected: "$\n└── [?@ < 10]\n   ├── @\n   └── 10\n",
+			name:  "Filter expression",
+			input: "$[?(@.price < 10)]",
 		},
 		{
-			name:     "Nested filter expression",
-			input:    "$[?(@.price < 10 && @.category == 'fiction')]",
-			expected: "$\n└── [?@ < 10 && @ == 'fiction']\n   ├── @ < 10\n   │   ├── @\n   │   └── 10\n   └── @ == 'fiction'\n       ├── @\n       └── 'fiction'\n",
+			name:  "Nested filter expression",
+			input: "$[?(@.price < 10 && @.category == 'fiction')]",
 		},
 		{
-			name:     "Function call",
-			input:    "$.books[?(length(@) > 100)]",
-			expected: "$\n├── books\n└── [?length() > 100]\n   └── length() > 100\n       ├── length()\n       └── 100\n",
+			name:  "Function call",
+			input: "$.books[?(length(@) > 100)]",
+		},
+		{
+			name:    "Invalid missing closing ]",
+			input:   "$.paths.['/pet'",
+			invalid: true,
+		},
+		{
+			name:    "Invalid extra input",
+			input:   "$.paths.['/pet')",
+			invalid: true,
+		},
+		{
+			name:  "Valid filter",
+			input: "$.paths[?(1 == 1)]",
+		},
+		{
+			name:    "Invalid filter",
+			input:   "$.paths[?(true]",
+			invalid: true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			tokenizer := token.NewTokenizer(test.input)
-
-			parser := newParserPrivate(tokenizer, tokenizer.Tokenize())
-			err := parser.parse()
-
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
+			path, err := jsonpath.NewPath(test.input)
+			if test.invalid {
+				require.Error(t, err)
 				return
 			}
-			//
-			//actual := PrintSegments(parser.segments)
-			//if actual != test.expected {
-			//	t.Errorf("Expected:\n%s\nGot:\n%s", test.expected, actual)
-			//}
+			require.NoError(t, err)
+			require.Equal(t, test.input, path.String())
 		})
 	}
 }

@@ -141,6 +141,9 @@ func (p *JSONPath) parseInnerSegment() (retValue *innerSegment, err error) {
 				return nil, err
 			}
 			selectors = append(selectors, innerSelector)
+			if len(p.tokens) <= p.current {
+				return nil, p.parseFailure(&p.tokens[p.current-1], "unexpected end of input")
+			}
 			if p.tokens[p.current].Token == token.BRACKET_RIGHT {
 				break
 			} else if p.tokens[p.current].Token == token.COMMA {
