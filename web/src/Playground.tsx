@@ -23,6 +23,17 @@ const changedOpenAPI = atomWithHash("changedOpenAPI", petstore, {
 const overlay = atomWithHash("overlay", blankOverlay, {
   setHash: throttledPushState,
 });
+const Link = ({ children, href }: { children: ReactNode; href: string }) => (
+  <a
+    className="border-b border-transparent pb-[2px] transition-all duration-200 hover:border-current "
+    href={href}
+    target="_blank"
+    rel="noreferrer"
+    style={{ color: "#FBE331" }}
+  >
+    {children}
+  </a>
+);
 
 function removeShareURL() {
   const currentUrl = new URL(window.location.href);
@@ -186,18 +197,6 @@ function Playground() {
   if (!ready) {
     return "";
   }
-
-  const Link = ({ children, href }: { children: ReactNode; href: string }) => (
-    <a
-      className="border-b border-transparent pb-[2px] transition-all duration-200 hover:border-current "
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      style={{ color: "#FBE331" }}
-    >
-      {children}
-    </a>
-  );
 
   return (
     <div
