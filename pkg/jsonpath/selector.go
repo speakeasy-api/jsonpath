@@ -17,15 +17,15 @@ const (
 )
 
 type slice struct {
-	start *int
-	end   *int
-	step  *int
+	start *int64
+	end   *int64
+	step  *int64
 }
 
 type selector struct {
 	kind   selectorSubKind
 	name   string
-	index  int
+	index  int64
 	slice  *slice
 	filter *filterSelector
 }
@@ -36,7 +36,7 @@ func (s selector) ToString() string {
 		return "'" + escapeString(s.name) + "'"
 	case selectorSubKindArrayIndex:
 		// int to string
-		return strconv.Itoa(s.index)
+		return strconv.FormatInt(s.index, 10)
 	case selectorSubKindFilter:
 		return "?" + s.filter.ToString()
 	case selectorSubKindWildcard:
@@ -44,16 +44,16 @@ func (s selector) ToString() string {
 	case selectorSubKindArraySlice:
 		builder := strings.Builder{}
 		if s.slice.start != nil {
-			builder.WriteString(strconv.Itoa(*s.slice.start))
+			builder.WriteString(strconv.FormatInt(*s.slice.start, 10))
 		}
 		builder.WriteString(":")
 		if s.slice.end != nil {
-			builder.WriteString(strconv.Itoa(*s.slice.end))
+			builder.WriteString(strconv.FormatInt(*s.slice.end, 10))
 		}
 
 		if s.slice.step != nil {
 			builder.WriteString(":")
-			builder.WriteString(strconv.Itoa(*s.slice.step))
+			builder.WriteString(strconv.FormatInt(*s.slice.step, 10))
 		}
 		return builder.String()
 	default:

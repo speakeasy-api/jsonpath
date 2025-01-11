@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const MaxSafeFloat = 9007199254740991
+const MaxSafeFloat int64 = 9007199254740991
 
 type mode int
 
@@ -209,14 +209,14 @@ func (p *JSONPath) parseSelector() (retSelector *selector, err error) {
 		if err != nil {
 			return nil, p.parseFailure(&p.tokens[p.current], "expected an integer")
 		}
-		err = p.checkSafeInteger(int(i), lit)
+		err = p.checkSafeInteger(i, lit)
 		if err != nil {
 			return nil, err
 		}
 
 		p.current++
 
-		return &selector{kind: selectorSubKindArrayIndex, index: int(i)}, nil
+		return &selector{kind: selectorSubKindArrayIndex, index: i}, nil
 	} else if p.tokens[p.current].Token == token.ARRAY_SLICE {
 		slice, err := p.parseSliceSelector()
 		if err != nil {
@@ -232,12 +232,12 @@ func (p *JSONPath) parseSelector() (retSelector *selector, err error) {
 
 func (p *JSONPath) parseSliceSelector() (*slice, error) {
 	// slice-selector = [start S] ":" S [end S] [":" [S step]]
-	var start, end, step *int
+	var start, end, step *int64
 
 	// parse the start index
 	if p.tokens[p.current].Token == token.INTEGER {
 		literal := p.tokens[p.current].Literal
-		i, err := strconv.Atoi(literal)
+		i, err := strconv.ParseInt(literal, 10, 64)
 		if err != nil {
 			return nil, p.parseFailure(&p.tokens[p.current], "expected an integer")
 		}
@@ -259,7 +259,7 @@ func (p *JSONPath) parseSliceSelector() (*slice, error) {
 	// parse the end index
 	if p.tokens[p.current].Token == token.INTEGER {
 		literal := p.tokens[p.current].Literal
-		i, err := strconv.Atoi(literal)
+		i, err := strconv.ParseInt(literal, 10, 64)
 		if err != nil {
 			return nil, p.parseFailure(&p.tokens[p.current], "expected an integer")
 		}
@@ -277,7 +277,7 @@ func (p *JSONPath) parseSliceSelector() (*slice, error) {
 		p.current++
 		if p.tokens[p.current].Token == token.INTEGER {
 			literal := p.tokens[p.current].Literal
-			i, err := strconv.Atoi(literal)
+			i, err := strconv.ParseInt(literal, 10, 64)
 			if err != nil {
 				return nil, p.parseFailure(&p.tokens[p.current], "expected an integer")
 			}
@@ -297,7 +297,7 @@ func (p *JSONPath) parseSliceSelector() (*slice, error) {
 	return &slice{start: start, end: end, step: step}, nil
 }
 
-func (p *JSONPath) checkSafeInteger(i int, literal string) error {
+func (p *JSONPath) checkSafeInteger(i int64, literal string) error {
 	if i > MaxSafeFloat || i < -MaxSafeFloat {
 		return p.parseFailure(&p.tokens[p.current], "outside bounds for safe integers")
 	}
