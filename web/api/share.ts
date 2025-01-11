@@ -2,12 +2,12 @@ import { put } from "@vercel/blob";
 import { createHash } from "crypto";
 
 const MAX_DATA_SIZE = 5 * 1024 * 1024; // 5MB
-const AllowedOrigin = process.env.ALLOWED_ORIGIN ?? "http://localhost";
+const AllowedOrigin = process.env.VERCEL_URL ?? "http://localhost";
 
 export function POST(request: Request) {
   const origin = request.headers.get("Origin");
 
-  if (!origin || !origin.startsWith(AllowedOrigin)) {
+  if (!origin || !origin.includes(AllowedOrigin)) {
     return new Response("Unauthorized", { status: 403 });
   }
 
