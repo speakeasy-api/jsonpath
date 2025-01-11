@@ -132,12 +132,12 @@ func (s selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 			return nil
 		}
 		// if out of bounds, return nothing
-		if s.index >= len(value.Content) || s.index < -len(value.Content) {
+		if s.index >= int64(len(value.Content)) || s.index < -int64(len(value.Content)) {
 			return nil
 		}
 		// if index is negative, go backwards
 		if s.index < 0 {
-			return []*yaml.Node{value.Content[len(value.Content)+s.index]}
+			return []*yaml.Node{value.Content[int64(len(value.Content))+s.index]}
 		}
 		return []*yaml.Node{value.Content[s.index]}
 	case selectorSubKindWildcard:
@@ -160,7 +160,7 @@ func (s selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 		if len(value.Content) == 0 {
 			return nil
 		}
-		step := 1
+		step := int64(1)
 		if s.slice.step != nil {
 			step = *s.slice.step
 		}
@@ -169,7 +169,7 @@ func (s selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 		}
 
 		start, end := s.slice.start, s.slice.end
-		lower, upper := bounds(start, end, step, len(value.Content))
+		lower, upper := bounds(start, end, step, int64(len(value.Content)))
 
 		var result []*yaml.Node
 		if step > 0 {
@@ -204,15 +204,15 @@ func (s selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 	return nil
 }
 
-func normalize(i, length int) int {
+func normalize(i, length int64) int64 {
 	if i >= 0 {
 		return i
 	}
 	return length + i
 }
 
-func bounds(start, end *int, step, length int) (int, int) {
-	var nStart, nEnd int
+func bounds(start, end *int64, step, length int64) (int64, int64) {
+	var nStart, nEnd int64
 	if start != nil {
 		nStart = normalize(*start, length)
 	} else if step > 0 {
@@ -228,7 +228,7 @@ func bounds(start, end *int, step, length int) (int, int) {
 		nEnd = -1
 	}
 
-	var lower, upper int
+	var lower, upper int64
 	if step >= 0 {
 		lower = max(min(nStart, length), 0)
 		upper = min(max(nEnd, 0), length)
