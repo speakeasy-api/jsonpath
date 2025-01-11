@@ -13,6 +13,7 @@ import { atomWithHash } from "jotai-location";
 import { compress, decompress } from "@/compress";
 import { CopyButton } from "@/components/CopyButton";
 import { Button } from "@/components/ui/button";
+import posthog from "posthog-js";
 
 const originalOpenAPI = atomWithHash("originalOpenAPI", petstore, {
   setHash: throttledPushState,
@@ -58,7 +59,7 @@ function Playground() {
   const getShareUrl = useCallback(async () => {
     try {
       setShareUrlLoading(true);
-      const info = await GetInfo(original);
+      const info = await GetInfo(original, false);
       const start = JSON.stringify({ result, original, info });
       const blob = await compress(start);
 
@@ -79,6 +80,10 @@ function Playground() {
 
         setShareUrl(currentUrl.toString());
         history.pushState(null, "", currentUrl.toString());
+        posthog.capture("overlay.speakeasy.com:share", {
+          openapi: JSON.parse(info),
+          currentUrl: currentUrl.toString(),
+        });
       } else {
         setError("Failed to create share URL");
       }
@@ -108,7 +113,16 @@ function Playground() {
           setOriginal(original);
           setResult(result);
 
-          const changed = await ApplyOverlay(original, result, true);
+          const changed = await ApplyOverlay(original, result, false);
+          const info = await GetInfo(original, false);
+          const bestURL = new URL(window.location.href);
+          bestURL.searchParams.set("s", hash);
+          bestURL.hash = "";
+          posthog.capture("overlay.speakeasy.com:load-shared", {
+            openapi: JSON.parse(info),
+            currentUrl: bestURL.toString(),
+          });
+
           setChanged(changed);
         } catch (error: any) {
           console.error("invalid share url:", error.message);

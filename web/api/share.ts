@@ -12,7 +12,8 @@ export function POST(request: Request) {
 
   if (
     !origin ||
-    (!origin.startsWith(AllowedOrigin) && !origin.startsWith(productionOrigin))
+    (new URL(origin).hostname != new URL(AllowedOrigin).hostname &&
+      !origin.startsWith(productionOrigin))
   ) {
     return new Response("Unauthorized", { status: 403 });
   }
