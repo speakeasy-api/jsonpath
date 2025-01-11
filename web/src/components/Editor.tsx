@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import MonacoEditor, { Monaco } from "@monaco-editor/react";
 import { editor } from "monaco-editor";
-import { Progress } from "../../@/components/ui/progress.tsx";
+import { Progress } from "../../@/components/ui/progress";
 
 export interface EditorComponentProps {
   readonly: boolean;
