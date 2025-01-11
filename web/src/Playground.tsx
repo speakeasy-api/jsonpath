@@ -1,15 +1,18 @@
 import { ReactNode, useCallback, useEffect, useState } from "react";
 import "./App.css";
-import { Editor } from "./components/Editor.tsx";
+import { Editor } from "./components/Editor";
 import { editor } from "monaco-editor";
-import { ApplyOverlay, CalculateOverlay, GetInfo } from "./bridge.ts";
+import { ApplyOverlay, CalculateOverlay, GetInfo } from "./bridge";
 import { Alert } from "@speakeasy-api/moonshine";
-import { blankOverlay, petstore } from "./defaults.ts";
+import { blankOverlay, petstore } from "./defaults";
 import { useAtom } from "jotai";
-import { throttledPushState } from "./url.ts";
+import { throttledPushState } from "./url";
 import speakeasyWhiteLogo from "./assets/speakeasy-white.svg";
 import openapiLogo from "./assets/openapi.svg";
 import { atomWithHash } from "jotai-location";
+import { compress, decompress } from "@/compress";
+import { CopyButton } from "@/components/CopyButton";
+import { Button } from "@/components/ui/button";
 
 const originalOpenAPI = atomWithHash("originalOpenAPI", petstore, {
   setHash: throttledPushState,
@@ -20,6 +23,25 @@ const changedOpenAPI = atomWithHash("changedOpenAPI", petstore, {
 const overlay = atomWithHash("overlay", blankOverlay, {
   setHash: throttledPushState,
 });
+const Link = ({ children, href }: { children: ReactNode; href: string }) => (
+  <a
+    className="border-b border-transparent pb-[2px] transition-all duration-200 hover:border-current "
+    href={href}
+    target="_blank"
+    rel="noreferrer"
+    style={{ color: "#FBE331" }}
+  >
+    {children}
+  </a>
+);
+
+function removeShareURL() {
+  const currentUrl = new URL(window.location.href);
+  if (currentUrl.searchParams.has("s")) {
+    currentUrl.searchParams.delete("s");
+    history.pushState(null, "", currentUrl.toString());
+  }
+}
 
 function Playground() {
   const [ready, setReady] = useState(false);
@@ -30,9 +52,68 @@ function Playground() {
   const [result, setResult] = useAtom(overlay);
   const [resultLoading, setResultLoading] = useState(false);
   const [error, setError] = useState("");
+  const [shareUrl, setShareUrl] = useState("");
+  const [shareUrlLoading, setShareUrlLoading] = useState(false);
+
+  const getShareUrl = useCallback(async () => {
+    try {
+      setShareUrlLoading(true);
+      const info = await GetInfo(original);
+      const start = JSON.stringify({ result, original, info });
+      const blob = await compress(start);
+
+      const response = await fetch("/api/share", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: blob,
+      });
+
+      if (response.ok) {
+        const base64Data = await response.json();
+        const currentUrl = new URL(window.location.href);
+
+        currentUrl.hash = "";
+        currentUrl.searchParams.set("s", base64Data);
+
+        setShareUrl(currentUrl.toString());
+        history.pushState(null, "", currentUrl.toString());
+      } else {
+        setError("Failed to create share URL");
+      }
+    } catch (e: any) {
+      setError("Couldn't create share url: " + e.message);
+    } finally {
+      setShareUrlLoading(false);
+    }
+  }, [original, result]);
 
   useEffect(() => {
     (async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hash = urlParams.get("s");
+
+      if (hash) {
+        try {
+          // base64 decode the download url
+          const downloadUrl = atob(hash);
+          const blob = await fetch(downloadUrl);
+          if (!blob.body) {
+            throw new Error("No body");
+          }
+          const decompressedData = await decompress(blob.body);
+          const { result, original } = JSON.parse(decompressedData);
+
+          setOriginal(original);
+          setResult(result);
+
+          const changed = await ApplyOverlay(original, result, true);
+          setChanged(changed);
+        } catch (error: any) {
+          console.error("invalid share url:", error.message);
+        }
+      }
       setReady(true);
     })();
   }, []);
@@ -40,6 +121,7 @@ function Playground() {
   const onChangeA = useCallback(
     async (value: string | undefined, _: editor.IModelContentChangedEvent) => {
       try {
+        removeShareURL();
         setResultLoading(true);
         setOriginal(value || "");
         const res = await CalculateOverlay(value || "", changed, true);
@@ -59,6 +141,7 @@ function Playground() {
   const onChangeB = useCallback(
     async (value: string | undefined, _: editor.IModelContentChangedEvent) => {
       try {
+        removeShareURL();
         setResultLoading(true);
         setChanged(value || "");
         const res = await CalculateOverlay(original, value || "", true);
@@ -78,6 +161,7 @@ function Playground() {
   const onChangeC = useCallback(
     async (value: string | undefined, _: editor.IModelContentChangedEvent) => {
       try {
+        removeShareURL();
         setChangedLoading(true);
         setResult(value || "");
         const res = await ApplyOverlay(original, value || "", true);
@@ -113,18 +197,6 @@ function Playground() {
   if (!ready) {
     return "";
   }
-
-  const Link = ({ children, href }: { children: ReactNode; href: string }) => (
-    <a
-      className="border-b border-transparent pb-[2px] transition-all duration-200 hover:border-current "
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      style={{ color: "#FBE331" }}
-    >
-      {children}
-    </a>
-  );
 
   return (
     <div
@@ -165,35 +237,47 @@ function Playground() {
               </div>
             </div>
             <div className="flex flex-1 flex-row-reverse">
-              <ul className="flex gap-x-2">
-                <li>
-                  <Link href="https://www.speakeasy.com?utm_source=overlay.speakeasy.com">
-                    Made by the team at
-                    <div className="sr-only ml-2">Speakeasy</div>
-                    <picture>
-                      <source
-                        srcSet={speakeasyWhiteLogo}
-                        media="(prefers-color-scheme: dark)"
-                      />
+              <div className="flex flex-col justify-between">
+                <div className="flex gap-x-2">
+                  <span>
+                    <Link href="https://www.speakeasy.com?utm_source=overlay.speakeasy.com">
+                      Made by the team at
+                      <div className="sr-only ml-2">Speakeasy</div>
                       <img
                         className="inline-block h-3 w-auto align-baseline ml-2"
                         src={speakeasyWhiteLogo}
                         alt=""
                       />
-                    </picture>
-                  </Link>
-                </li>
-                <li className="before:pe-2 before:content-['•']">
-                  <Link href="https://github.com/speakeasy-api/jsonpath">
-                    GitHub
-                  </Link>
-                </li>
-                <li className="before:pe-2 before:content-['•']">
-                  <Link href="https://github.com/OAI/Overlay-Specification">
-                    OpenAPI Overlay
-                  </Link>
-                </li>
-              </ul>
+                    </Link>
+                  </span>
+                  <span className="before:pe-2 before:content-['•']">
+                    <Link href="https://github.com/speakeasy-api/jsonpath">
+                      GitHub
+                    </Link>
+                  </span>
+                  <span className="before:pe-2 before:content-['•']">
+                    <Link href="https://github.com/OAI/Overlay-Specification">
+                      OpenAPI Overlay
+                    </Link>
+                  </span>
+                </div>
+                <div className="flex gap-x-2 justify-evenly ">
+                  <Button
+                    className="border-b border-transparent transition-all duration-200 hover:border-current"
+                    style={{
+                      color: "#FBE331",
+                      backgroundColor: "#1E1E1E",
+                    }}
+                    onClick={getShareUrl}
+                    disabled={shareUrlLoading}
+                  >
+                    Share
+                  </Button>
+                  <div className="flex items-center gap-x-2 grow">
+                    {shareUrl ? <CopyButton value={shareUrl} /> : null}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

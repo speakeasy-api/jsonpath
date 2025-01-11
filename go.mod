@@ -1,8 +1,6 @@
 module github.com/speakeasy-api/jsonpath
 
-go 1.21.0
-
-toolchain go1.22.2
+go 1.22
 
 require (
 	github.com/pmezard/go-difflib v1.0.0
