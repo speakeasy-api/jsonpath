@@ -8,12 +8,16 @@ import React, {
 import MonacoEditor, { Monaco } from "@monaco-editor/react";
 import { editor } from "monaco-editor";
 import { Progress } from "../../@/components/ui/progress";
+import { Icon } from "@speakeasy-api/moonshine";
+import { Button } from "@/components/ui/button";
 
 export interface EditorComponentProps {
   readonly: boolean;
   value: string;
   loading?: boolean;
   title?: string;
+  index: number;
+  maxOnClick?: (index: number) => void;
   onChange: (
     value: string | undefined,
     ev: editor.IModelContentChangedEvent,
@@ -76,6 +80,10 @@ export function Editor(props: EditorComponentProps) {
     [props.loading, progress],
   );
 
+  const onMaxClick = useCallback(() => {
+    props.maxOnClick?.(props.index);
+  }, [props.maxOnClick, props.index]);
+
   useEffect(() => {
     if (props.loading) {
       const startTime = Date.now();
@@ -131,6 +139,16 @@ export function Editor(props: EditorComponentProps) {
         <div style={{ background: "#212015", padding: "1rem" }}>
           <h1 className="text-xl font-semibold leading-none tracking-tight">
             {props.title}
+            {props.maxOnClick ? (
+              <Button
+                onClick={onMaxClick}
+                className="bg-transparent"
+                size="icon"
+                variant="ghost"
+              >
+                <Icon name="maximize" />
+              </Button>
+            ) : null}
           </h1>
         </div>
       )}
