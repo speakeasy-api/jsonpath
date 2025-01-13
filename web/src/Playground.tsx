@@ -1,4 +1,11 @@
-import { ReactNode, useCallback, useEffect, useState } from "react";
+import {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import "./App.css";
 import { Editor } from "./components/Editor";
 import { editor } from "monaco-editor";
@@ -13,7 +20,14 @@ import { atomWithHash } from "jotai-location";
 import { compress, decompress } from "@/compress";
 import { CopyButton } from "@/components/CopyButton";
 import { Button } from "@/components/ui/button";
+import {
+  PanelGroup,
+  Panel,
+  PanelResizeHandle,
+  ImperativePanelGroupHandle,
+} from "react-resizable-panels";
 import posthog from "posthog-js";
+import { useMediaQuery } from "usehooks-ts";
 
 const originalOpenAPI = atomWithHash("originalOpenAPI", petstore, {
   setHash: throttledPushState,
@@ -55,6 +69,11 @@ function Playground() {
   const [error, setError] = useState("");
   const [shareUrl, setShareUrl] = useState("");
   const [shareUrlLoading, setShareUrlLoading] = useState(false);
+  const isSmallScreen = useMediaQuery("(max-width: 768px)");
+  const defaultLayout = useMemo(
+    () => (isSmallScreen ? [20, 60, 20] : [30, 40, 30]),
+    [],
+  );
 
   const getShareUrl = useCallback(async () => {
     try {
@@ -203,6 +222,20 @@ function Playground() {
     tryHandlePageTitle();
   }, [original]);
 
+  const ref = useRef<ImperativePanelGroupHandle>(null);
+
+  const maxLayout = useCallback((index: number) => {
+    const panelGroup = ref.current;
+    const desiredWidths = [10, 10, 10];
+    if (index < desiredWidths.length && index >= 0) {
+      desiredWidths[index] = 80;
+    }
+    if (panelGroup) {
+      // Reset each Panel to 50% of the group's width
+      panelGroup.setLayout(desiredWidths);
+    }
+  }, []);
+
   if (!ready) {
     return "";
   }
@@ -297,37 +330,54 @@ function Playground() {
           display: "flex",
           flexDirection: "row",
           width: "100%",
+          maxWidth: "100vw",
           justifyContent: "space-between",
           gap: "1rem",
           overflow: "hidden",
         }}
       >
-        <div style={{ height: "calc(100vh - 50px)", width: "33vw" }}>
-          <Editor
-            readonly={false}
-            value={original}
-            onChange={onChangeA}
-            title="Original"
-          />
-        </div>
-        <div style={{ height: "calc(100vh - 50px)", width: "33vw" }}>
-          <Editor
-            readonly={false}
-            value={changed}
-            onChange={onChangeB}
-            loading={changedLoading}
-            title={"Original + Overlay"}
-          />
-        </div>
-        <div style={{ height: "calc(100vh - 50px)", width: "33vw" }}>
-          <Editor
-            readonly={false}
-            value={result}
-            onChange={onChangeC}
-            loading={resultLoading}
-            title={"Overlay"}
-          />
-        </div>
+        <PanelGroup direction="horizontal" ref={ref}>
+          <Panel defaultSize={defaultLayout[0]} minSize={10}>
+            <div style={{ height: "calc(100vh - 50px)" }}>
+              <Editor
+                readonly={false}
+                value={original}
+                onChange={onChangeA}
+                title="Original"
+                index={0}
+                maxOnClick={maxLayout}
+              />
+            </div>
+          </Panel>
+          <PanelResizeHandle />
+          <Panel defaultSize={defaultLayout[1]} minSize={10}>
+            <div style={{ height: "calc(100vh - 50px)" }}>
+              <Editor
+                readonly={false}
+                value={changed}
+                onChange={onChangeB}
+                loading={changedLoading}
+                title={"Original + Overlay"}
+                index={1}
+                maxOnClick={maxLayout}
+              />
+            </div>
+          </Panel>
+          <PanelResizeHandle />
+          <Panel defaultSize={defaultLayout[2]} minSize={10}>
+            <div style={{ height: "calc(100vh - 50px)" }}>
+              <Editor
+                readonly={false}
+                value={result}
+                onChange={onChangeC}
+                loading={resultLoading}
+                title={"Overlay"}
+                index={2}
+                maxOnClick={maxLayout}
+              />
+            </div>
+          </Panel>
+        </PanelGroup>
       </div>
     </div>
   );
