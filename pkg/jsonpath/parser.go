@@ -55,7 +55,7 @@ func (p *JSONPath) parse() error {
 }
 
 func (p *JSONPath) parseFailure(target *token.TokenInfo, msg string) error {
-	return errors.New(p.tokenizer.ErrorTokenString(target, msg))
+	return errors.New(p.tokenizer.ErrorString(target, msg))
 }
 
 // peek returns true if the upcoming token matches the given token type.

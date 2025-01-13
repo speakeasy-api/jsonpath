@@ -315,7 +315,10 @@ func (t Tokenizer) ErrorString(target *TokenInfo, msg string) string {
 
 	// Write the caret symbol pointing to the target token
 	errorBuilder.WriteString(spaces)
-	dots := strings.Repeat(".", target.Len-1)
+	dots := ""
+	if target.Len > 0 {
+		dots = strings.Repeat(".", target.Len-1)
+	}
 	errorBuilder.WriteString("^" + dots + "\n")
 
 	return errorBuilder.String()

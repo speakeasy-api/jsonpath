@@ -70,6 +70,9 @@ function Playground() {
   const [shareUrl, setShareUrl] = useState("");
   const [shareUrlLoading, setShareUrlLoading] = useState(false);
   const isSmallScreen = useMediaQuery("(max-width: 768px)");
+  const clearError = useCallback(() => {
+    setError("");
+  }, []);
   const defaultLayout = useMemo(
     () => (isSmallScreen ? [20, 60, 20] : [30, 40, 30]),
     [],
@@ -313,7 +316,7 @@ function Playground() {
                     onClick={getShareUrl}
                     disabled={shareUrlLoading}
                   >
-                    Share
+                    Short URL
                   </Button>
                   <div className="flex items-center gap-x-2 grow">
                     {shareUrl ? <CopyButton value={shareUrl} /> : null}
@@ -324,7 +327,21 @@ function Playground() {
           </div>
         </div>
       </div>
-      {error && <Alert variant={"error"}>{error}</Alert>}
+      {error && (
+        <Alert onDismiss={clearError} variant={"error"}>
+          {error.split("\n").length > 1 ? (
+            <>
+              {error.split("\n")[0]}
+              <br />
+              <div className="text-left whitespace-pre">
+                <pre>{error.split("\n").slice(1).join("\n")}</pre>
+              </div>
+            </>
+          ) : (
+            error
+          )}
+        </Alert>
+      )}
       <div
         style={{
           display: "flex",
