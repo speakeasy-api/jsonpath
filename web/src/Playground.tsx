@@ -253,6 +253,11 @@ function Playground() {
         width: "100%",
       }}
     >
+      {isSmallScreen ? (
+        <Alert variant="info">
+          For proper user experience, please use a desktop device
+        </Alert>
+      ) : null}
       <div style={{ paddingBottom: "1rem", width: "100vw" }}>
         <div className="border-b border-muted p-4 md:p-6 text-left">
           <div className="flex gap-2">
