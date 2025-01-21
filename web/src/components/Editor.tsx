@@ -5,17 +5,21 @@ import React, {
   useRef,
   useState,
 } from "react";
-import MonacoEditor, { Monaco } from "@monaco-editor/react";
-import { editor } from "monaco-editor";
+import MonacoEditor, { Monaco, DiffEditor } from "@monaco-editor/react";
+import { editor, Uri } from "monaco-editor";
 import { Progress } from "../../@/components/ui/progress";
 import { Icon } from "@speakeasy-api/moonshine";
 import { Button } from "@/components/ui/button";
+import IModelContentChangedEvent = editor.IModelContentChangedEvent;
+import ITextModel = editor.ITextModel;
+import ICodeEditor = editor.ICodeEditor;
 
 export interface EditorComponentProps {
   readonly: boolean;
   value: string;
+  original?: string;
   loading?: boolean;
-  title?: string;
+  title: string;
   index: number;
   maxOnClick?: (index: number) => void;
   onChange: (
@@ -27,51 +31,89 @@ export interface EditorComponentProps {
 const minLoadingTime = 150;
 
 export function Editor(props: EditorComponentProps) {
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<ICodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
+  const modelRef = useRef<ITextModel | null>(null);
   const [lastLoadingTime, setLastLoadingTime] = useState(minLoadingTime);
   const [progress, setProgress] = useState(100);
 
-  const handleEditorDidMount = useCallback((editor: any, monaco: Monaco) => {
-    editorRef.current = editor;
-    monacoRef.current = monaco;
+  const encodedTitle = useMemo(() => {
+    return btoa(props.title);
+  }, [props.title]);
 
-    const options = {
-      base: "vs-dark",
-      renderSideBySide: false,
-      inherit: true,
-      rules: [
-        {
-          foreground: "F3F0E3",
-          token: "string",
-        },
-        {
-          foreground: "679FE1",
-          token: "type",
-        },
-      ],
-      colors: {
-        "editor.foreground": "#F3F0E3",
-        "editor.background": "#212015",
-        "editorCursor.foreground": "#679FE1",
-        "editor.lineHighlightBackground": "#1D2A3A",
-        "editorLineNumber.foreground": "#6368747F",
-        "editorLineNumber.activeForeground": "#FBE331",
-        "editor.inactiveSelectionBackground": "#FF3C742D",
-        "diffEditor.removedTextBackground": "#FF3C741A",
-        "diffEditor.insertedTextBackground": "#1D2A3A",
-      },
+  const EditorComponent =
+    props.original === undefined ? MonacoEditor : DiffEditor;
+
+  const onChange = useCallback(
+    (value: string, event: IModelContentChangedEvent) => {
+      props.onChange(value, event);
+    },
+    [props.onChange],
+  );
+
+  const handleEditorWillMount = useCallback((monaco: Monaco) => {
+    monacoRef.current = monaco;
+    const matchesURI = (uri: Uri | undefined) => {
+      return uri?.path.includes(encodedTitle);
     };
-    // @ts-ignore
-    monaco.editor.defineTheme("speakeasy", options);
-    monaco.editor.setTheme("speakeasy");
+    monaco.editor.onDidCreateModel((model) => {
+      if (!matchesURI(model.uri)) {
+        return;
+      }
+      if (props.original && !model.uri.path.includes("modified")) {
+        return;
+      }
+
+      modelRef.current = model;
+      modelRef.current.onDidChangeContent((event) => {
+        if (editorRef.current?.hasTextFocus()) {
+          onChange(model.getValue(), event);
+        }
+      });
+    });
   }, []);
+
+  const handleEditorDidMount = useCallback(
+    (editor: ICodeEditor, monaco: Monaco) => {
+      editorRef.current = editor;
+
+      const options = {
+        base: "vs-dark",
+        inherit: true,
+        rules: [
+          {
+            foreground: "F3F0E3",
+            token: "string",
+          },
+          {
+            foreground: "679FE1",
+            token: "type",
+          },
+        ],
+        colors: {
+          "editor.foreground": "#F3F0E3",
+          "editor.background": "#212015",
+          "editorCursor.foreground": "#679FE1",
+          "editor.lineHighlightBackground": "#1D2A3A",
+          "editorLineNumber.foreground": "#6368747F",
+          "editorLineNumber.activeForeground": "#FBE331",
+          "editor.inactiveSelectionBackground": "#FF3C742D",
+          "diffEditor.removedTextBackground": "#FF3C741A",
+          "diffEditor.insertedTextBackground": "#1D2A3A",
+        },
+      } satisfies editor.IStandaloneThemeData;
+      monaco.editor.defineTheme("speakeasy", options);
+      monaco.editor.setTheme("speakeasy");
+    },
+    [onChange],
+  );
 
   const options: any = useMemo(
     () => ({
       readOnly: props.readonly,
       minimap: { enabled: false },
       automaticLayout: true,
+      renderSideBySide: false,
     }),
     [props.readonly],
   );
@@ -152,10 +194,15 @@ export function Editor(props: EditorComponentProps) {
           </h1>
         </div>
       )}
-      <MonacoEditor
+      <EditorComponent
         onMount={handleEditorDidMount}
+        beforeMount={handleEditorWillMount}
+        original={props.original}
+        modified={props.value}
         value={props.value}
-        onChange={props.onChange}
+        path={encodedTitle}
+        originalModelPath={encodedTitle + "/original"}
+        modifiedModelPath={encodedTitle + "/modified"}
         theme={"vscode-dark"}
         language="yaml"
         options={options}

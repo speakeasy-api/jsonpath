@@ -29,7 +29,7 @@ import posthog from "posthog-js";
 import { useDebounceCallback, useMediaQuery } from "usehooks-ts";
 
 const originalOpenAPI = atom(petstore);
-const changedOpenAPI = atom(petstore);
+const changedOpenAPI = atom<string>("");
 const overlay = atom(blankOverlay);
 const Link = ({ children, href }: { children: ReactNode; href: string }) => (
   <a
@@ -129,6 +129,9 @@ function Playground() {
         } catch (error: any) {
           console.error("invalid share url:", error.message);
         }
+      } else {
+        const changed = await ApplyOverlay(original, result, false);
+        setChanged(changed);
       }
       setReady(true);
     })();
@@ -364,6 +367,7 @@ function Playground() {
             <div style={{ height: "calc(100vh - 50px)" }}>
               <Editor
                 readonly={false}
+                original={original}
                 value={changed}
                 onChange={onChangeBDebounced}
                 loading={changedLoading}
