@@ -21,7 +21,7 @@ const messageHandlers: MessageHandlers = {
   CalculateOverlay: async (
     payload: CalculateOverlayMessage["Request"]["payload"],
   ) => {
-    return exec("CalculateOverlay", payload.from, payload.to);
+    return exec("CalculateOverlay", payload.from, payload.to, payload.existing);
   },
   ApplyOverlay: async (payload: ApplyOverlayMessage["Request"]["payload"]) => {
     return exec("ApplyOverlay", payload.source, payload.overlay);

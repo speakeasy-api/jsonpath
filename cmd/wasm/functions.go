@@ -10,7 +10,7 @@ import (
 	"syscall/js"
 )
 
-func CalculateOverlay(originalYAML, targetYAML string) (string, error) {
+func CalculateOverlay(originalYAML, targetYAML, existingOverlay string) (string, error) {
 	var orig yaml.Node
 	err := yaml.Unmarshal([]byte(originalYAML), &orig)
 	if err != nil {
@@ -22,11 +22,27 @@ func CalculateOverlay(originalYAML, targetYAML string) (string, error) {
 		return "", fmt.Errorf("failed to parse target schema: %w", err)
 	}
 
-	overlay, err := overlay.Compare("example overlay", &orig, target)
+	// we go from the original to a new version, then look at the extra overlays on top
+	// of that, then add that to the existing overlay
+	var overlayDocument overlay.Overlay
+	err = yaml.Unmarshal([]byte(existingOverlay), &overlayDocument)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse overlay schema: %w", err)
+	}
+	// now modify the original using the existing overlay
+	err = overlayDocument.ApplyTo(&orig)
+	if err != nil {
+		return "", fmt.Errorf("failed to apply existing overlay: %w", err)
+	}
+
+	newOverlay, err := overlay.Compare("example overlay", &orig, target)
 	if err != nil {
 		return "", fmt.Errorf("failed to compare schemas: %w", err)
 	}
-	out, err := yaml.Marshal(overlay)
+	// Now we take those actions, add them onto the end of the existing overlay
+	overlayDocument.Actions = append(overlayDocument.Actions, newOverlay.Actions...)
+
+	out, err := yaml.Marshal(overlayDocument)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal schema: %w", err)
 	}
@@ -130,11 +146,11 @@ func promisify(fn func(args []js.Value) (string, error)) js.Func {
 
 func main() {
 	js.Global().Set("CalculateOverlay", promisify(func(args []js.Value) (string, error) {
-		if len(args) != 2 {
-			return "", fmt.Errorf("CalculateOverlay: expected 2 args, got %v", len(args))
+		if len(args) != 3 {
+			return "", fmt.Errorf("CalculateOverlay: expected 3 args, got %v", len(args))
 		}
 
-		return CalculateOverlay(args[0].String(), args[1].String())
+		return CalculateOverlay(args[0].String(), args[1].String(), args[2].String())
 	}))
 
 	js.Global().Set("ApplyOverlay", promisify(func(args []js.Value) (string, error) {

@@ -12,25 +12,20 @@ import { editor } from "monaco-editor";
 import { ApplyOverlay, CalculateOverlay, GetInfo } from "./bridge";
 import { Alert } from "@speakeasy-api/moonshine";
 import { blankOverlay, petstore } from "./defaults";
-import { useAtom } from "jotai";
 import speakeasyWhiteLogo from "./assets/speakeasy-white.svg";
 import openapiLogo from "./assets/openapi.svg";
-import { atom } from "jotai";
 import { compress, decompress } from "@/compress";
 import { CopyButton } from "@/components/CopyButton";
 import { Button } from "@/components/ui/button";
 import {
-  PanelGroup,
-  Panel,
-  PanelResizeHandle,
   ImperativePanelGroupHandle,
+  Panel,
+  PanelGroup,
+  PanelResizeHandle,
 } from "react-resizable-panels";
 import posthog from "posthog-js";
 import { useDebounceCallback, useMediaQuery } from "usehooks-ts";
 
-const originalOpenAPI = atom(petstore);
-const changedOpenAPI = atom<string>("");
-const overlay = atom(blankOverlay);
 const Link = ({ children, href }: { children: ReactNode; href: string }) => (
   <a
     className="border-b border-transparent pb-[2px] transition-all duration-200 hover:border-current "
@@ -46,10 +41,10 @@ const Link = ({ children, href }: { children: ReactNode; href: string }) => (
 function Playground() {
   const [ready, setReady] = useState(false);
 
-  const [original, setOriginal] = useAtom(originalOpenAPI);
-  const [changed, setChanged] = useAtom(changedOpenAPI);
+  const original = useRef(petstore);
+  const changed = useRef("");
   const [changedLoading, setChangedLoading] = useState(false);
-  const [result, setResult] = useAtom(overlay);
+  const result = useRef(blankOverlay);
   const [resultLoading, setResultLoading] = useState(false);
   const [error, setError] = useState("");
   const [shareUrl, setShareUrl] = useState("");
@@ -66,8 +61,12 @@ function Playground() {
   const getShareUrl = useCallback(async () => {
     try {
       setShareUrlLoading(true);
-      const info = await GetInfo(original, false);
-      const start = JSON.stringify({ result, original, info });
+      const info = await GetInfo(original.current, false);
+      const start = JSON.stringify({
+        result: result.current,
+        original: original.current,
+        info: info,
+      });
       const blob = await compress(start);
 
       const response = await fetch("/api/share", {
@@ -114,24 +113,33 @@ function Playground() {
             throw new Error("No body");
           }
           const decompressedData = await decompress(blob.body);
-          const { result, original } = JSON.parse(decompressedData);
+          const decompressed: { original: string; result: string } =
+            JSON.parse(decompressedData);
 
-          setOriginal(original);
-          setResult(result);
+          original.current = decompressed.original;
+          result.current = decompressed.result;
 
-          const changed = await ApplyOverlay(original, result, false);
-          const info = await GetInfo(original, false);
+          const changedNew = await ApplyOverlay(
+            original.current,
+            result.current,
+            false,
+          );
+          const info = await GetInfo(original.current, false);
           posthog.capture("overlay.speakeasy.com:load-shared", {
             openapi: JSON.parse(info),
           });
 
-          setChanged(changed);
+          changed.current = changedNew;
         } catch (error: any) {
           console.error("invalid share url:", error.message);
         }
       } else {
-        const changed = await ApplyOverlay(original, result, false);
-        setChanged(changed);
+        const changedNew = await ApplyOverlay(
+          original.current,
+          result.current,
+          false,
+        );
+        changed.current = changedNew;
       }
       setReady(true);
     })();
@@ -141,9 +149,14 @@ function Playground() {
     async (value: string | undefined, _: editor.IModelContentChangedEvent) => {
       try {
         setResultLoading(true);
-        setOriginal(value || "");
-        const res = await CalculateOverlay(value || "", changed, true);
-        setResult(res);
+        original.current = value || "";
+        const res = await CalculateOverlay(
+          value || "",
+          changed.current,
+          result.current,
+          true,
+        );
+        result.current = res;
         setError("");
       } catch (e: unknown) {
         if (e instanceof Error) {
@@ -153,7 +166,7 @@ function Playground() {
         setResultLoading(false);
       }
     },
-    [changed, original],
+    [],
   );
 
   const onChangeADebounced = useDebounceCallback(onChangeA, 500);
@@ -162,9 +175,13 @@ function Playground() {
     async (value: string | undefined, _: editor.IModelContentChangedEvent) => {
       try {
         setResultLoading(true);
-        setChanged(value || "");
-        const res = await CalculateOverlay(original, value || "", true);
-        setResult(res);
+        changed.current = value || "";
+        result.current = await CalculateOverlay(
+          original.current,
+          value || "",
+          result.current,
+          true,
+        );
         setError("");
       } catch (e: unknown) {
         if (e instanceof Error) {
@@ -174,7 +191,7 @@ function Playground() {
         setResultLoading(false);
       }
     },
-    [changed, original],
+    [],
   );
 
   const onChangeBDebounced = useDebounceCallback(onChangeB, 500);
@@ -183,9 +200,12 @@ function Playground() {
     async (value: string | undefined, _: editor.IModelContentChangedEvent) => {
       try {
         setChangedLoading(true);
-        setResult(value || "");
-        const res = await ApplyOverlay(original, value || "", true);
-        setChanged(res);
+        result.current = value || "";
+        changed.current = await ApplyOverlay(
+          original.current,
+          value || "",
+          true,
+        );
         setError("");
       } catch (e: unknown) {
         if (e instanceof Error) {
@@ -195,7 +215,7 @@ function Playground() {
         setChangedLoading(false);
       }
     },
-    [changed, original],
+    [],
   );
 
   const onChangeCDebounced = useDebounceCallback(onChangeC, 500);
@@ -203,7 +223,7 @@ function Playground() {
   useEffect(() => {
     const tryHandlePageTitle = async () => {
       try {
-        const info = await GetInfo(original);
+        const info = await GetInfo(original.current);
         const { title, version } = JSON.parse(info);
         const pageTitle = `${title} ${version} | Speakeasy OpenAPI Overlay Playground`;
         if (document.title !== pageTitle) {
@@ -312,7 +332,7 @@ function Playground() {
                     onClick={getShareUrl}
                     disabled={shareUrlLoading}
                   >
-                    Short URL
+                    Share
                   </Button>
                   <div className="flex items-center gap-x-2 grow">
                     {shareUrl ? <CopyButton value={shareUrl} /> : null}
@@ -354,7 +374,7 @@ function Playground() {
             <div style={{ height: "calc(100vh - 50px)" }}>
               <Editor
                 readonly={false}
-                value={original}
+                value={original.current}
                 onChange={onChangeADebounced}
                 title="Original"
                 index={0}
@@ -367,8 +387,8 @@ function Playground() {
             <div style={{ height: "calc(100vh - 50px)" }}>
               <Editor
                 readonly={false}
-                original={original}
-                value={changed}
+                original={original.current}
+                value={changed.current}
                 onChange={onChangeBDebounced}
                 loading={changedLoading}
                 title={"Original + Overlay"}
@@ -382,7 +402,7 @@ function Playground() {
             <div style={{ height: "calc(100vh - 50px)" }}>
               <Editor
                 readonly={false}
-                value={result}
+                value={result.current}
                 onChange={onChangeCDebounced}
                 loading={resultLoading}
                 title={"Overlay"}

@@ -69,6 +69,7 @@
     display: flex;
     margin: 0 auto;
     text-align: center;
+    overflow: hidden;
     width: 100vw;
     justify-content: space-between;
   }

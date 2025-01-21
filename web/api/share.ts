@@ -59,7 +59,7 @@ async function processData(chunks: Uint8Array[]): Promise<Response> {
     offset += chunk.length;
   }
 
-  const hash = createHash("sha256").update(data).digest("hex");
+  const hash = createHash("sha256").update(data).digest("base64").slice(0, 7);
   const key = `share-urls/${hash}`;
 
   const result = await put(key, data, {
@@ -67,7 +67,7 @@ async function processData(chunks: Uint8Array[]): Promise<Response> {
     access: "public",
   });
   const downloadURL = result.downloadUrl;
-  const encodedDownloadURL = Buffer.from(downloadURL).toString("base64");
+  const encodedDownloadURL = Buffer.from(downloadURL.trim()).toString("base64");
 
   return new Response(JSON.stringify(encodedDownloadURL), {
     status: 200,

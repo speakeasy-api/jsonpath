@@ -47,6 +47,7 @@ export type CalculateOverlayMessage = {
     payload: {
       from: string;
       to: string;
+      existing: string;
     };
   };
   Response:
@@ -100,12 +101,13 @@ export type ApplyOverlayMessage = {
 export function CalculateOverlay(
   from: string,
   to: string,
+  existing: string,
   supercede = false,
 ): Promise<any> {
   return sendMessage(
     {
       type: "CalculateOverlay",
-      payload: { from, to },
+      payload: { from, to, existing },
     } satisfies CalculateOverlayMessage["Request"],
     supercede,
   );
