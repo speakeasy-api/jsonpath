@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import IModelContentChangedEvent = editor.IModelContentChangedEvent;
 import ITextModel = editor.ITextModel;
 import ICodeEditor = editor.ICodeEditor;
+import IStandaloneDiffEditor = editor.IStandaloneDiffEditor;
 
 export interface EditorComponentProps {
   readonly: boolean;
@@ -31,7 +32,7 @@ export interface EditorComponentProps {
 const minLoadingTime = 150;
 
 export function Editor(props: EditorComponentProps) {
-  const editorRef = useRef<ICodeEditor | null>(null);
+  const editorRef = useRef<ICodeEditor | IStandaloneDiffEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const modelRef = useRef<ITextModel | null>(null);
   const [lastLoadingTime, setLastLoadingTime] = useState(minLoadingTime);
@@ -74,7 +75,7 @@ export function Editor(props: EditorComponentProps) {
   }, []);
 
   const handleEditorDidMount = useCallback(
-    (editor: ICodeEditor, monaco: Monaco) => {
+    (editor: ICodeEditor | IStandaloneDiffEditor, monaco: Monaco) => {
       editorRef.current = editor;
 
       const options = {
