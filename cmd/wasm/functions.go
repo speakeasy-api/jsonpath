@@ -24,13 +24,13 @@ func CalculateOverlay(originalYAML, targetYAML, existingOverlay string) (string,
 
 	// we go from the original to a new version, then look at the extra overlays on top
 	// of that, then add that to the existing overlay
-	var overlayDocument overlay.Overlay
-	err = yaml.Unmarshal([]byte(existingOverlay), &overlayDocument)
+	var existingOverlayDocument overlay.Overlay
+	err = yaml.Unmarshal([]byte(existingOverlay), &existingOverlayDocument)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse overlay schema: %w", err)
 	}
 	// now modify the original using the existing overlay
-	err = overlayDocument.ApplyTo(&orig)
+	err = existingOverlayDocument.ApplyTo(&orig)
 	if err != nil {
 		return "", fmt.Errorf("failed to apply existing overlay: %w", err)
 	}
@@ -39,10 +39,15 @@ func CalculateOverlay(originalYAML, targetYAML, existingOverlay string) (string,
 	if err != nil {
 		return "", fmt.Errorf("failed to compare schemas: %w", err)
 	}
-	// Now we take those actions, add them onto the end of the existing overlay
-	overlayDocument.Actions = append(overlayDocument.Actions, newOverlay.Actions...)
+	// special case, is there only one action and it targets the same as the last overlayDocument.Actions item entry, we'll just replace it.
+	if len(newOverlay.Actions) == 1 && len(existingOverlayDocument.Actions) > 0 && newOverlay.Actions[0].Target == existingOverlayDocument.Actions[len(existingOverlayDocument.Actions)-1].Target {
+		existingOverlayDocument.Actions[len(existingOverlayDocument.Actions)-1] = newOverlay.Actions[0]
+	} else {
+		// Otherwise, we'll just append the new overlay to the existing overlay
+		existingOverlayDocument.Actions = append(existingOverlayDocument.Actions, newOverlay.Actions...)
+	}
 
-	out, err := yaml.Marshal(overlayDocument)
+	out, err := yaml.Marshal(existingOverlayDocument)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal schema: %w", err)
 	}
