@@ -13,10 +13,9 @@ import { ApplyOverlay, CalculateOverlay, GetInfo } from "./bridge";
 import { Alert } from "@speakeasy-api/moonshine";
 import { blankOverlay, petstore } from "./defaults";
 import { useAtom } from "jotai";
-import { throttledPushState } from "./url";
 import speakeasyWhiteLogo from "./assets/speakeasy-white.svg";
 import openapiLogo from "./assets/openapi.svg";
-import { atomWithHash } from "jotai-location";
+import { atom } from "jotai";
 import { compress, decompress } from "@/compress";
 import { CopyButton } from "@/components/CopyButton";
 import { Button } from "@/components/ui/button";
@@ -27,17 +26,11 @@ import {
   ImperativePanelGroupHandle,
 } from "react-resizable-panels";
 import posthog from "posthog-js";
-import { useMediaQuery } from "usehooks-ts";
+import { useDebounceCallback, useMediaQuery } from "usehooks-ts";
 
-const originalOpenAPI = atomWithHash("originalOpenAPI", petstore, {
-  setHash: throttledPushState,
-});
-const changedOpenAPI = atomWithHash("changedOpenAPI", petstore, {
-  setHash: throttledPushState,
-});
-const overlay = atomWithHash("overlay", blankOverlay, {
-  setHash: throttledPushState,
-});
+const originalOpenAPI = atom(petstore);
+const changedOpenAPI = atom(petstore);
+const overlay = atom(blankOverlay);
 const Link = ({ children, href }: { children: ReactNode; href: string }) => (
   <a
     className="border-b border-transparent pb-[2px] transition-all duration-200 hover:border-current "
@@ -49,14 +42,6 @@ const Link = ({ children, href }: { children: ReactNode; href: string }) => (
     {children}
   </a>
 );
-
-function removeShareURL() {
-  const currentUrl = new URL(window.location.href);
-  if (currentUrl.searchParams.has("s")) {
-    currentUrl.searchParams.delete("s");
-    history.pushState(null, "", currentUrl.toString());
-  }
-}
 
 function Playground() {
   const [ready, setReady] = useState(false);
@@ -152,7 +137,6 @@ function Playground() {
   const onChangeA = useCallback(
     async (value: string | undefined, _: editor.IModelContentChangedEvent) => {
       try {
-        removeShareURL();
         setResultLoading(true);
         setOriginal(value || "");
         const res = await CalculateOverlay(value || "", changed, true);
@@ -169,10 +153,11 @@ function Playground() {
     [changed, original],
   );
 
+  const onChangeADebounced = useDebounceCallback(onChangeA, 500);
+
   const onChangeB = useCallback(
     async (value: string | undefined, _: editor.IModelContentChangedEvent) => {
       try {
-        removeShareURL();
         setResultLoading(true);
         setChanged(value || "");
         const res = await CalculateOverlay(original, value || "", true);
@@ -189,10 +174,11 @@ function Playground() {
     [changed, original],
   );
 
+  const onChangeBDebounced = useDebounceCallback(onChangeB, 500);
+
   const onChangeC = useCallback(
     async (value: string | undefined, _: editor.IModelContentChangedEvent) => {
       try {
-        removeShareURL();
         setChangedLoading(true);
         setResult(value || "");
         const res = await ApplyOverlay(original, value || "", true);
@@ -208,6 +194,8 @@ function Playground() {
     },
     [changed, original],
   );
+
+  const onChangeCDebounced = useDebounceCallback(onChangeC, 500);
 
   useEffect(() => {
     const tryHandlePageTitle = async () => {
@@ -364,7 +352,7 @@ function Playground() {
               <Editor
                 readonly={false}
                 value={original}
-                onChange={onChangeA}
+                onChange={onChangeADebounced}
                 title="Original"
                 index={0}
                 maxOnClick={maxLayout}
@@ -377,7 +365,7 @@ function Playground() {
               <Editor
                 readonly={false}
                 value={changed}
-                onChange={onChangeB}
+                onChange={onChangeBDebounced}
                 loading={changedLoading}
                 title={"Original + Overlay"}
                 index={1}
@@ -391,7 +379,7 @@ function Playground() {
               <Editor
                 readonly={false}
                 value={result}
-                onChange={onChangeC}
+                onChange={onChangeCDebounced}
                 loading={resultLoading}
                 title={"Overlay"}
                 index={2}
