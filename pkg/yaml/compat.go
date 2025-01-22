@@ -2,6 +2,7 @@ package yaml
 
 import (
 	"bytes"
+	"github.com/goccy/go-yaml/lexer"
 	"github.com/goccy/go-yaml/parser"
 	"github.com/goccy/go-yaml/token"
 	"strconv"
@@ -151,12 +152,18 @@ func astToNode(value ast.Node) *Node {
 			Column: value.Token.Position.Column,
 		}
 	case *ast.LiteralNode:
-		return astToNode(value.Value)
+		subNode := astToNode(value.Value)
+		if value.Start.Indicator == token.BlockScalarIndicator {
+			subNode.Style |= LiteralStyle
+			subNode.Line = value.Start.Position.Line
+			subNode.Column = value.Start.Position.Column
+		}
+		return subNode
 	case *ast.DirectiveNode:
 		return nil
 	case *ast.TagNode:
 		subNode := astToNode(value.Value)
-		subNode.Style = TaggedStyle
+		subNode.Style |= TaggedStyle
 		subNode.Tag = value.Start.Value
 		subNode.Line = value.Start.Position.Line
 		subNode.Column = value.Start.Position.Column
@@ -171,14 +178,18 @@ func astToNode(value ast.Node) *Node {
 			Column:  value.GetToken().Position.Column,
 		}
 	case *ast.MappingNode:
-		children := []*Node{}
+		var children []*Node
 		for _, childValue := range value.Values {
-
 			children = append(children, astToNode(childValue.Key))
 			children = append(children, astToNode(childValue.Value))
 		}
+		style := Style(0)
+		if value.IsFlowStyle {
+			style |= FlowStyle
+		}
 		return &Node{
 			ast:     value,
+			Style:   style,
 			Kind:    MappingNode,
 			Content: children,
 			Line:    value.GetToken().Position.Line,
@@ -189,12 +200,18 @@ func astToNode(value ast.Node) *Node {
 	case *ast.MappingValueNode:
 		return astToNode(value.Value)
 	case *ast.SequenceNode:
-		children := []*Node{}
+		var children []*Node
 		for _, value := range value.Values {
 			children = append(children, astToNode(value))
 		}
+		style := Style(0)
+		if value.IsFlowStyle {
+			style |= FlowStyle
+		}
+
 		return &Node{
 			ast:     value,
+			Style:   style,
 			Kind:    SequenceNode,
 			Content: children,
 			Line:    value.GetToken().Position.Line,
@@ -219,6 +236,25 @@ func nodeToAST(t *Node) ast.Node {
 	if t.ast != nil {
 		return t.ast
 	}
+	if t.Style&TaggedStyle != 0 || unknownTag(t.Tag) {
+		newT := *t
+		newT.Style &= ^TaggedStyle
+		newT.Tag = ""
+		tagged := &ast.TagNode{
+			BaseNode: &ast.BaseNode{},
+			Start: &token.Token{
+				Type:   token.TagType,
+				Origin: t.Tag,
+				Value:  t.Tag,
+			},
+			Value: nodeToAST(&newT),
+		}
+		if tagged.Value.GetToken() != nil && tagged.Value.GetToken().Type == token.DoubleQuoteType && t.Tag == string(token.StringTag) {
+			tagged.Value.GetToken().Type = token.StringType
+		}
+		return tagged
+	}
+
 	switch t.Kind {
 	case DocumentNode:
 		return &ast.DocumentNode{
@@ -265,45 +301,58 @@ func nodeToAST(t *Node) ast.Node {
 				},
 				Value: nodeToAST(&newT),
 			}
-
 		case string(token.StringTag):
-			if t.Style == TaggedStyle {
-				newT := *t
-				newT.Style = 0
-				return &ast.TagNode{
-					BaseNode: &ast.BaseNode{},
-					Start: &token.Token{
-						Type:   token.TagType,
-						Origin: t.Tag,
-						Value:  t.Tag,
-					},
-					Value: nodeToAST(&newT),
-				}
-			}
 			return &ast.StringNode{
 				BaseNode: &ast.BaseNode{},
 				Token: &token.Token{
-					Type:  getTokenType(t.Style),
+					Type:  getTokenType(t.Style, t.Value),
 					Value: t.Value,
+					Position: &token.Position{
+						Line:   t.Line,
+						Column: t.Column,
+					},
 				},
 				Value: t.Value,
 			}
 		case string(token.IntegerTag):
 			return &ast.IntegerNode{
 				BaseNode: &ast.BaseNode{},
-				Value:    t.Value,
+				Token: &token.Token{
+					Type:  token.IntegerType,
+					Value: t.Value,
+					Position: &token.Position{
+						Line:   t.Line,
+						Column: t.Column,
+					},
+				},
+				Value: t.Value,
 			}
 		case string(token.FloatTag):
 			f, _ := strconv.ParseFloat(t.Value, 64)
 			return &ast.FloatNode{
 				BaseNode: &ast.BaseNode{},
-				Value:    f,
+				Token: &token.Token{
+					Type:  token.FloatType,
+					Value: t.Value,
+					Position: &token.Position{
+						Line:   t.Line,
+						Column: t.Column,
+					},
+				},
+				Value: f,
 			}
 		case string(token.BooleanTag):
 			bool, _ := strconv.ParseBool(t.Value)
 			return &ast.BoolNode{
 				BaseNode: &ast.BaseNode{},
-				Value:    bool,
+				Token: &token.Token{
+					Value: t.Value,
+					Position: &token.Position{
+						Line:   t.Line,
+						Column: t.Column,
+					},
+				},
+				Value: bool,
 			}
 		case string(token.NullTag):
 			return &ast.NullNode{
@@ -322,11 +371,53 @@ func nodeToAST(t *Node) ast.Node {
 					Value: t.Value,
 				},
 			}
+
+		case "":
+			// parse the value
+			parsed, err := parser.ParseBytes([]byte(t.Value), parser.ParseComments)
+			if err != nil || len(parsed.Docs) != 1 {
+				return &ast.NullNode{
+					BaseNode: &ast.BaseNode{},
+				}
+			}
+
+			return parsed.Docs[0].Body
+		default:
+			newT := *t
+			newT.Style = 0
+			newT.Tag = ""
+			return &ast.TagNode{
+				BaseNode: &ast.BaseNode{},
+				Start: &token.Token{
+					Type:   token.TagType,
+					Origin: t.Tag,
+					Value:  t.Tag,
+				},
+				Value: nodeToAST(&newT),
+			}
+
 		}
+
 	}
 	return &ast.NullNode{
 		BaseNode: &ast.BaseNode{},
 	}
+}
+
+func unknownTag(tag string) bool {
+	return tag != string(token.IntegerTag) &&
+		tag != string(token.FloatTag) &&
+		tag != string(token.NullTag) &&
+		tag != string(token.SequenceTag) &&
+		tag != string(token.MappingTag) &&
+		tag != string(token.StringTag) &&
+		tag != string(token.BinaryTag) &&
+		tag != string(token.OrderedMapTag) &&
+		tag != string(token.SetTag) &&
+		tag != string(token.TimestampTag) &&
+		tag != string(token.BooleanTag) &&
+		tag != string(token.MergeTag) &&
+		tag != ""
 }
 
 func getStringStyle(n *ast.StringNode) Style {
@@ -338,13 +429,18 @@ func getStringStyle(n *ast.StringNode) Style {
 	}
 	return 0
 }
-func getTokenType(n Style) token.Type {
+func getTokenType(n Style, value string) token.Type {
 	switch n {
 	case SingleQuotedStyle:
 		return token.SingleQuoteType
 	case DoubleQuotedStyle:
 		return token.DoubleQuoteType
 	}
+	tokenized := lexer.Tokenize(value)
+	if len(tokenized) == 1 && tokenized[0].Type != token.StringType {
+		return token.DoubleQuoteType
+	}
+
 	return 0
 }
 
