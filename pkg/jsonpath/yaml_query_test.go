@@ -2,7 +2,7 @@ package jsonpath
 
 import (
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/token"
-	"gopkg.in/yaml.v3"
+	"github.com/speakeasy-api/jsonpath/pkg/yaml"
 	"reflect"
 	"strings"
 	"testing"

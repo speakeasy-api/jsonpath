@@ -6,7 +6,7 @@ import (
 	"log"
 	"strings"
 
-	"gopkg.in/yaml.v3"
+	"github.com/speakeasy-api/jsonpath/pkg/yaml"
 )
 
 // Compare compares input specifications from two files and returns an overlay

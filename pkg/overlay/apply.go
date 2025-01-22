@@ -2,7 +2,7 @@ package overlay
 
 import (
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
-	"gopkg.in/yaml.v3"
+	"github.com/speakeasy-api/jsonpath/pkg/yaml"
 )
 
 // ApplyTo will take an overlay and apply its changes to the given YAML

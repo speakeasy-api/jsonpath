@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"gopkg.in/yaml.v3"
+	"github.com/speakeasy-api/jsonpath/pkg/yaml"
 )
 
 func TestLiteralEquals(t *testing.T) {

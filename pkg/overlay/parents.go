@@ -1,6 +1,6 @@
 package overlay
 
-import "gopkg.in/yaml.v3"
+import "github.com/speakeasy-api/jsonpath/pkg/yaml"
 
 type parentIndex map[*yaml.Node]*yaml.Node
 

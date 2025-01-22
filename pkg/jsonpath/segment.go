@@ -1,7 +1,7 @@
 package jsonpath
 
 import (
-	"gopkg.in/yaml.v3"
+	"github.com/speakeasy-api/jsonpath/pkg/yaml"
 	"strings"
 )
 

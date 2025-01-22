@@ -2,7 +2,7 @@ package overlay
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
+	"github.com/speakeasy-api/jsonpath/pkg/yaml"
 	"io"
 	"os"
 	"path/filepath"

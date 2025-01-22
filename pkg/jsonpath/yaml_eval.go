@@ -2,7 +2,7 @@ package jsonpath
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
+	"github.com/speakeasy-api/jsonpath/pkg/yaml"
 	"reflect"
 	"regexp"
 	"strconv"
