@@ -8,10 +8,17 @@ type Evaluator interface {
 	Query(current *yaml.Node, root *yaml.Node) []*yaml.Node
 }
 
+type index struct {
+	propertyKeys map[*yaml.Node]*yaml.Node
+}
+
 // jsonPathAST can be Evaluated
 var _ Evaluator = jsonPathAST{}
 
 func (q jsonPathAST) Query(current *yaml.Node, root *yaml.Node) []*yaml.Node {
+	idx := index{
+		propertyKeys: map[*yaml.Node]*yaml.Node{},
+	}
 	result := make([]*yaml.Node, 0)
 	// If the top level node is a documentnode, unwrap it
 	if root.Kind == yaml.DocumentNode && len(root.Content) == 1 {
@@ -22,29 +29,35 @@ func (q jsonPathAST) Query(current *yaml.Node, root *yaml.Node) []*yaml.Node {
 	for _, segment := range q.segments {
 		newValue := []*yaml.Node{}
 		for _, value := range result {
-			newValue = append(newValue, segment.Query(value, root)...)
+			newValue = append(newValue, segment.Query(idx, value, root)...)
 		}
 		result = newValue
 	}
 	return result
 }
 
-func (s segment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
-	if s.Child != nil {
-		return s.Child.Query(value, root)
-	} else if s.Descendant != nil {
+func (s segment) Query(idx index, value *yaml.Node, root *yaml.Node) []*yaml.Node {
+	switch s.kind {
+	case segmentKindChild:
+		return s.child.Query(idx, value, root)
+	case segmentKindDescendant:
 		// run the inner segment against this node
 		var result = []*yaml.Node{}
 		children := descend(value, root)
 		for _, child := range children {
-			result = append(result, s.Descendant.Query(child, root)...)
+			result = append(result, s.descendant.Query(idx, child, root)...)
 		}
 		// make children unique by pointer value
 		result = unique(result)
 		return result
-	} else {
-		panic("no segment type")
+	case segmentKindProperyName:
+		found, ok := idx.propertyKeys[value]
+		if ok {
+			return []*yaml.Node{found}
+		}
+		return []*yaml.Node{}
 	}
+	panic("no segment type")
 }
 
 func unique(nodes []*yaml.Node) []*yaml.Node {
@@ -60,7 +73,7 @@ func unique(nodes []*yaml.Node) []*yaml.Node {
 	return res
 }
 
-func (s innerSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
+func (s innerSegment) Query(idx index, value *yaml.Node, root *yaml.Node) []*yaml.Node {
 	result := []*yaml.Node{}
 
 	switch s.kind {
@@ -72,6 +85,7 @@ func (s innerSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 			// we just want to return the values
 			for i, child := range value.Content {
 				if i%2 == 1 {
+					idx.propertyKeys[child] = value.Content[i-1]
 					result = append(result, child)
 				}
 			}
@@ -91,6 +105,7 @@ func (s innerSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 				val := value.Content[i+1]
 
 				if key.Value == s.dotName {
+					idx.propertyKeys[val] = key
 					result = append(result, val)
 					break
 				}
@@ -100,7 +115,7 @@ func (s innerSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 	case segmentLongHand:
 		// Handle long hand selectors
 		for _, selector := range s.selectors {
-			result = append(result, selector.Query(value, root)...)
+			result = append(result, selector.Query(idx, value, root)...)
 		}
 	default:
 		panic("unknown child segment kind")
@@ -110,7 +125,7 @@ func (s innerSegment) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 
 }
 
-func (s selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
+func (s selector) Query(idx index, value *yaml.Node, root *yaml.Node) []*yaml.Node {
 	switch s.kind {
 	case selectorSubKindName:
 		if value.Kind != yaml.MappingNode {
@@ -124,6 +139,7 @@ func (s selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 				continue
 			}
 			if key == s.name {
+				idx.propertyKeys[child] = value.Content[i]
 				return []*yaml.Node{child}
 			}
 		}
@@ -147,6 +163,7 @@ func (s selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 			var result []*yaml.Node
 			for i, child := range value.Content {
 				if i%2 == 1 {
+					idx.propertyKeys[child] = value.Content[i-1]
 					result = append(result, child)
 				}
 			}
@@ -188,13 +205,14 @@ func (s selector) Query(value *yaml.Node, root *yaml.Node) []*yaml.Node {
 		switch value.Kind {
 		case yaml.MappingNode:
 			for i := 1; i < len(value.Content); i += 2 {
-				if s.filter.Matches(value.Content[i], root) {
+				idx.propertyKeys[value.Content[i]] = value.Content[i-1]
+				if s.filter.Matches(idx, value.Content[i], root) {
 					result = append(result, value.Content[i])
 				}
 			}
 		case yaml.SequenceNode:
 			for _, child := range value.Content {
-				if s.filter.Matches(child, root) {
+				if s.filter.Matches(idx, child, root) {
 					result = append(result, child)
 				}
 			}
@@ -240,46 +258,46 @@ func bounds(start, end *int64, step, length int64) (int64, int64) {
 	return lower, upper
 }
 
-func (s filterSelector) Matches(node *yaml.Node, root *yaml.Node) bool {
-	return s.expression.Matches(node, root)
+func (s filterSelector) Matches(idx index, node *yaml.Node, root *yaml.Node) bool {
+	return s.expression.Matches(idx, node, root)
 }
 
-func (e logicalOrExpr) Matches(node *yaml.Node, root *yaml.Node) bool {
+func (e logicalOrExpr) Matches(idx index, node *yaml.Node, root *yaml.Node) bool {
 	for _, expr := range e.expressions {
-		if expr.Matches(node, root) {
+		if expr.Matches(idx, node, root) {
 			return true
 		}
 	}
 	return false
 }
 
-func (e logicalAndExpr) Matches(node *yaml.Node, root *yaml.Node) bool {
+func (e logicalAndExpr) Matches(idx index, node *yaml.Node, root *yaml.Node) bool {
 	for _, expr := range e.expressions {
-		if !expr.Matches(node, root) {
+		if !expr.Matches(idx, node, root) {
 			return false
 		}
 	}
 	return true
 }
 
-func (e basicExpr) Matches(node *yaml.Node, root *yaml.Node) bool {
+func (e basicExpr) Matches(idx index, node *yaml.Node, root *yaml.Node) bool {
 	if e.parenExpr != nil {
-		result := e.parenExpr.expr.Matches(node, root)
+		result := e.parenExpr.expr.Matches(idx, node, root)
 		if e.parenExpr.not {
 			return !result
 		}
 		return result
 	} else if e.comparisonExpr != nil {
-		return e.comparisonExpr.Matches(node, root)
+		return e.comparisonExpr.Matches(idx, node, root)
 	} else if e.testExpr != nil {
-		return e.testExpr.Matches(node, root)
+		return e.testExpr.Matches(idx, node, root)
 	}
 	return false
 }
 
-func (e comparisonExpr) Matches(node *yaml.Node, root *yaml.Node) bool {
-	leftValue := e.left.Evaluate(node, root)
-	rightValue := e.right.Evaluate(node, root)
+func (e comparisonExpr) Matches(idx index, node *yaml.Node, root *yaml.Node) bool {
+	leftValue := e.left.Evaluate(idx, node, root)
+	rightValue := e.right.Evaluate(idx, node, root)
 
 	switch e.op {
 	case equalTo:
@@ -299,12 +317,12 @@ func (e comparisonExpr) Matches(node *yaml.Node, root *yaml.Node) bool {
 	}
 }
 
-func (e testExpr) Matches(node *yaml.Node, root *yaml.Node) bool {
+func (e testExpr) Matches(idx index, node *yaml.Node, root *yaml.Node) bool {
 	var result bool
 	if e.filterQuery != nil {
-		result = len(e.filterQuery.Query(node, root)) > 0
+		result = len(e.filterQuery.Query(idx, node, root)) > 0
 	} else if e.functionExpr != nil {
-		funcResult := e.functionExpr.Evaluate(node, root)
+		funcResult := e.functionExpr.Evaluate(idx, node, root)
 		if funcResult.bool != nil {
 			result = *funcResult.bool
 		} else if funcResult.null == nil {
@@ -317,9 +335,9 @@ func (e testExpr) Matches(node *yaml.Node, root *yaml.Node) bool {
 	return result
 }
 
-func (q filterQuery) Query(node *yaml.Node, root *yaml.Node) []*yaml.Node {
+func (q filterQuery) Query(idx index, node *yaml.Node, root *yaml.Node) []*yaml.Node {
 	if q.relQuery != nil {
-		return q.relQuery.Query(node, root)
+		return q.relQuery.Query(idx, node, root)
 	}
 	if q.jsonPathQuery != nil {
 		return q.jsonPathQuery.Query(node, root)
@@ -327,24 +345,24 @@ func (q filterQuery) Query(node *yaml.Node, root *yaml.Node) []*yaml.Node {
 	return nil
 }
 
-func (q relQuery) Query(node *yaml.Node, root *yaml.Node) []*yaml.Node {
+func (q relQuery) Query(idx index, node *yaml.Node, root *yaml.Node) []*yaml.Node {
 	result := []*yaml.Node{node}
 	for _, seg := range q.segments {
 		var newResult []*yaml.Node
 		for _, value := range result {
-			newResult = append(newResult, seg.Query(value, root)...)
+			newResult = append(newResult, seg.Query(idx, value, root)...)
 		}
 		result = newResult
 	}
 	return result
 }
 
-func (q absQuery) Query(node *yaml.Node, root *yaml.Node) []*yaml.Node {
+func (q absQuery) Query(idx index, node *yaml.Node, root *yaml.Node) []*yaml.Node {
 	result := []*yaml.Node{root}
 	for _, seg := range q.segments {
 		var newResult []*yaml.Node
 		for _, value := range result {
-			newResult = append(newResult, seg.Query(value, root)...)
+			newResult = append(newResult, seg.Query(idx, value, root)...)
 		}
 		result = newResult
 	}

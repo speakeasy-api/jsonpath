@@ -2,6 +2,7 @@ package token
 
 import (
 	"fmt"
+	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
 	"testing"
 )
 
@@ -19,7 +20,7 @@ func TestTokenizer(t *testing.T) {
 			},
 		},
 		{
-			name:  "Child",
+			name:  "child",
 			input: "$.store.book",
 			expected: []TokenInfo{
 				{Token: ROOT, Line: 1, Column: 0, Literal: "", Len: 1},
@@ -704,6 +705,96 @@ func TestString(t *testing.T) {
 					t.Errorf("Expected literal '%s', but got '%s'", test.expected, tokens[0].Literal)
 				} else if tokens[0].Len != len(test.input) {
 					t.Errorf("Expected length %d, but got %d", len(test.input), tokens[0].Len)
+				}
+			}
+		})
+	}
+}
+
+func TestPropertyNameExtension(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		enabled  bool
+		expected []TokenInfo
+	}{
+		{
+			name:    "Property name extension enabled",
+			input:   "$.child~",
+			enabled: true,
+			expected: []TokenInfo{
+				{Token: ROOT, Line: 1, Column: 0, Literal: "", Len: 1},
+				{Token: CHILD, Line: 1, Column: 1, Literal: "", Len: 1},
+				{Token: STRING, Line: 1, Column: 2, Literal: "child", Len: 5},
+				{Token: PROPERTY_NAME, Line: 1, Column: 7, Literal: "", Len: 1},
+			},
+		},
+		{
+			name:    "Property name extension disabled",
+			input:   "$.child~",
+			enabled: false,
+			expected: []TokenInfo{
+				{Token: ROOT, Line: 1, Column: 0, Literal: "", Len: 1},
+				{Token: CHILD, Line: 1, Column: 1, Literal: "", Len: 1},
+				{Token: STRING, Line: 1, Column: 2, Literal: "child", Len: 5},
+				{Token: ILLEGAL, Line: 1, Column: 7, Literal: "invalid property name token without config.PropertyNameExtension set to true", Len: 1},
+			},
+		},
+		{
+			name:    "Property name extension with bracket notation enabled",
+			input:   "$['child']~",
+			enabled: true,
+			expected: []TokenInfo{
+				{Token: ROOT, Line: 1, Column: 0, Literal: "", Len: 1},
+				{Token: BRACKET_LEFT, Line: 1, Column: 1, Literal: "", Len: 1},
+				{Token: STRING_LITERAL, Line: 1, Column: 2, Literal: "child", Len: 7},
+				{Token: BRACKET_RIGHT, Line: 1, Column: 9, Literal: "", Len: 1},
+				{Token: PROPERTY_NAME, Line: 1, Column: 10, Literal: "", Len: 1},
+			},
+		},
+		{
+			name:    "Property name extension in filter with current node",
+			input:   "$[?(@~)]",
+			enabled: true,
+			expected: []TokenInfo{
+				{Token: ROOT, Line: 1, Column: 0, Literal: "", Len: 1},
+				{Token: BRACKET_LEFT, Line: 1, Column: 1, Literal: "", Len: 1},
+				{Token: FILTER, Line: 1, Column: 2, Literal: "", Len: 1},
+				{Token: PAREN_LEFT, Line: 1, Column: 3, Literal: "", Len: 1},
+				{Token: CURRENT, Line: 1, Column: 4, Literal: "", Len: 1},
+				{Token: PROPERTY_NAME, Line: 1, Column: 5, Literal: "", Len: 1},
+				{Token: PAREN_RIGHT, Line: 1, Column: 6, Literal: "", Len: 1},
+				{Token: BRACKET_RIGHT, Line: 1, Column: 7, Literal: "", Len: 1},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var tokenizer *Tokenizer
+			if test.enabled {
+				tokenizer = NewTokenizer(test.input, config.WithPropertyNameExtension())
+			} else {
+				tokenizer = NewTokenizer(test.input)
+			}
+
+			tokens := tokenizer.Tokenize()
+
+			if len(tokens) != len(test.expected) {
+				t.Errorf("Expected %d tokens, got %d\n%s",
+					len(test.expected),
+					len(tokens),
+					tokenizer.ErrorTokenString(&tokens[0], "Unexpected number of tokens"))
+			}
+
+			for i, expectedToken := range test.expected {
+				if i >= len(tokens) {
+					break
+				}
+				actualToken := tokens[i]
+				if actualToken != expectedToken {
+					t.Error(tokenizer.ErrorString(&actualToken,
+						fmt.Sprintf("Expected token %+v, got %+v", expectedToken, actualToken)))
 				}
 			}
 		})

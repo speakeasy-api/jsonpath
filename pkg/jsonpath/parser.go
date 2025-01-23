@@ -3,6 +3,7 @@ package jsonpath
 import (
 	"errors"
 	"fmt"
+	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/token"
 	"strconv"
 	"strings"
@@ -24,11 +25,12 @@ type JSONPath struct {
 	ast       jsonPathAST
 	current   int
 	mode      []mode
+	config    config.Config
 }
 
 // newParserPrivate creates a new JSONPath with the given tokens.
-func newParserPrivate(tokenizer *token.Tokenizer, tokens []token.TokenInfo) *JSONPath {
-	return &JSONPath{tokenizer, tokens, jsonPathAST{}, 0, []mode{modeNormal}}
+func newParserPrivate(tokenizer *token.Tokenizer, tokens []token.TokenInfo, opts ...config.Option) *JSONPath {
+	return &JSONPath{tokenizer, tokens, jsonPathAST{}, 0, []mode{modeNormal}, config.New(opts...)}
 }
 
 // parse parses the JSONPath tokens and returns the root node of the AST.
@@ -88,7 +90,7 @@ func (p *JSONPath) parseSegment() (*segment, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &segment{Descendant: child}, nil
+		return &segment{kind: segmentKindDescendant, descendant: child}, nil
 	} else if currentToken.Token == token.CHILD || currentToken.Token == token.BRACKET_LEFT {
 		if currentToken.Token == token.CHILD {
 			p.current++
@@ -97,7 +99,10 @@ func (p *JSONPath) parseSegment() (*segment, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &segment{Child: child}, nil
+		return &segment{kind: segmentKindChild, child: child}, nil
+	} else if p.config.PropertyNameEnabled() && currentToken.Token == token.PROPERTY_NAME {
+		p.current++
+		return &segment{kind: segmentKindProperyName}, nil
 	}
 	return nil, p.parseFailure(&currentToken, "unexpected token when parsing segment")
 }

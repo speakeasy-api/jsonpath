@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
+	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
 	"github.com/speakeasy-api/jsonpath/pkg/overlay"
 	"gopkg.in/yaml.v3"
 	"syscall/js"
@@ -119,6 +120,25 @@ func ApplyOverlay(originalYAML, overlayYAML string) (string, error) {
 	return string(out), nil
 }
 
+func Query(currentYAML, path string) (string, error) {
+	var orig yaml.Node
+	err := yaml.Unmarshal([]byte(currentYAML), &orig)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse original schema: %w", err)
+	}
+	parsed, err := jsonpath.NewPath(path, config.WithPropertyNameExtension())
+	if err != nil {
+		return "", err
+	}
+	result := parsed.Query(&orig)
+	// Marshal it back out
+	out, err := yaml.Marshal(result)
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
+}
+
 func promisify(fn func(args []js.Value) (string, error)) js.Func {
 	return js.FuncOf(func(this js.Value, args []js.Value) any {
 		// Handler for the Promise
@@ -172,6 +192,13 @@ func main() {
 		}
 
 		return GetInfo(args[0].String())
+	}))
+	js.Global().Set("Query", promisify(func(args []js.Value) (string, error) {
+		if len(args) != 1 {
+			return "", fmt.Errorf("Query: expected 2 args, got %v", len(args))
+		}
+
+		return Query(args[0].String(), args[1].String())
 	}))
 
 	<-make(chan bool)

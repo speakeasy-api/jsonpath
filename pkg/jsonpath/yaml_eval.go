@@ -104,21 +104,21 @@ func (l literal) LessThanOrEqual(value literal) bool {
 	return l.LessThan(value) || l.Equals(value)
 }
 
-func (c comparable) Evaluate(node *yaml.Node, root *yaml.Node) literal {
+func (c comparable) Evaluate(idx index, node *yaml.Node, root *yaml.Node) literal {
 	if c.literal != nil {
 		return *c.literal
 	}
 	if c.singularQuery != nil {
-		return c.singularQuery.Evaluate(node, root)
+		return c.singularQuery.Evaluate(idx, node, root)
 	}
 	if c.functionExpr != nil {
-		return c.functionExpr.Evaluate(node, root)
+		return c.functionExpr.Evaluate(idx, node, root)
 	}
 	return literal{}
 }
 
-func (e functionExpr) length(node *yaml.Node, root *yaml.Node) literal {
-	args := e.args[0].Eval(node, root)
+func (e functionExpr) length(idx index, node *yaml.Node, root *yaml.Node) literal {
+	args := e.args[0].Eval(idx, node, root)
 	if args.kind != functionArgTypeLiteral {
 		return literal{}
 	}
@@ -150,8 +150,8 @@ func (e functionExpr) length(node *yaml.Node, root *yaml.Node) literal {
 	return literal{}
 }
 
-func (e functionExpr) count(node *yaml.Node, root *yaml.Node) literal {
-	args := e.args[0].Eval(node, root)
+func (e functionExpr) count(idx index, node *yaml.Node, root *yaml.Node) literal {
+	args := e.args[0].Eval(idx, node, root)
 	if args.kind == functionArgTypeNodes {
 		res := len(args.nodes)
 		return literal{integer: &res}
@@ -161,9 +161,9 @@ func (e functionExpr) count(node *yaml.Node, root *yaml.Node) literal {
 	return literal{integer: &res}
 }
 
-func (e functionExpr) match(node *yaml.Node, root *yaml.Node) literal {
-	arg1 := e.args[0].Eval(node, root)
-	arg2 := e.args[1].Eval(node, root)
+func (e functionExpr) match(idx index, node *yaml.Node, root *yaml.Node) literal {
+	arg1 := e.args[0].Eval(idx, node, root)
+	arg2 := e.args[1].Eval(idx, node, root)
 	if arg1.kind != functionArgTypeLiteral || arg2.kind != functionArgTypeLiteral {
 		return literal{}
 	}
@@ -174,9 +174,9 @@ func (e functionExpr) match(node *yaml.Node, root *yaml.Node) literal {
 	return literal{bool: &matched}
 }
 
-func (e functionExpr) search(node *yaml.Node, root *yaml.Node) literal {
-	arg1 := e.args[0].Eval(node, root)
-	arg2 := e.args[1].Eval(node, root)
+func (e functionExpr) search(idx index, node *yaml.Node, root *yaml.Node) literal {
+	arg1 := e.args[0].Eval(idx, node, root)
+	arg2 := e.args[1].Eval(idx, node, root)
 	if arg1.kind != functionArgTypeLiteral || arg2.kind != functionArgTypeLiteral {
 		return literal{}
 	}
@@ -187,7 +187,7 @@ func (e functionExpr) search(node *yaml.Node, root *yaml.Node) literal {
 	return literal{bool: &matched}
 }
 
-func (e functionExpr) value(node *yaml.Node, root *yaml.Node) literal {
+func (e functionExpr) value(idx index, node *yaml.Node, root *yaml.Node) literal {
 	//	2.4.8.  value() Function Extension
 	//
 	//Parameters:
@@ -204,7 +204,7 @@ func (e functionExpr) value(node *yaml.Node, root *yaml.Node) literal {
 	//*  If the argument is the empty nodelist or contains multiple nodes,
 	//	the result is Nothing.
 
-	nodesType := e.args[0].Eval(node, root)
+	nodesType := e.args[0].Eval(idx, node, root)
 	if nodesType.kind == functionArgTypeLiteral {
 		return *nodesType.literal
 	} else if nodesType.kind == functionArgTypeNodes && len(nodesType.nodes) == 1 {
@@ -234,34 +234,34 @@ func nodeToLiteral(node *yaml.Node) literal {
 	}
 }
 
-func (e functionExpr) Evaluate(node *yaml.Node, root *yaml.Node) literal {
+func (e functionExpr) Evaluate(idx index, node *yaml.Node, root *yaml.Node) literal {
 	switch e.funcType {
 	case functionTypeLength:
-		return e.length(node, root)
+		return e.length(idx, node, root)
 	case functionTypeCount:
-		return e.count(node, root)
+		return e.count(idx, node, root)
 	case functionTypeMatch:
-		return e.match(node, root)
+		return e.match(idx, node, root)
 	case functionTypeSearch:
-		return e.search(node, root)
+		return e.search(idx, node, root)
 	case functionTypeValue:
-		return e.value(node, root)
+		return e.value(idx, node, root)
 	}
 	return literal{}
 }
 
-func (q singularQuery) Evaluate(node *yaml.Node, root *yaml.Node) literal {
+func (q singularQuery) Evaluate(idx index, node *yaml.Node, root *yaml.Node) literal {
 	if q.relQuery != nil {
-		return q.relQuery.Evaluate(node, root)
+		return q.relQuery.Evaluate(idx, node, root)
 	}
 	if q.absQuery != nil {
-		return q.absQuery.Evaluate(node, root)
+		return q.absQuery.Evaluate(idx, node, root)
 	}
 	return literal{}
 }
 
-func (q relQuery) Evaluate(node *yaml.Node, root *yaml.Node) literal {
-	result := q.Query(node, root)
+func (q relQuery) Evaluate(idx index, node *yaml.Node, root *yaml.Node) literal {
+	result := q.Query(idx, node, root)
 	if len(result) == 1 {
 		return nodeToLiteral(result[0])
 	}
@@ -269,8 +269,8 @@ func (q relQuery) Evaluate(node *yaml.Node, root *yaml.Node) literal {
 
 }
 
-func (q absQuery) Evaluate(node *yaml.Node, root *yaml.Node) literal {
-	result := q.Query(root, root)
+func (q absQuery) Evaluate(idx index, node *yaml.Node, root *yaml.Node) literal {
+	result := q.Query(idx, root, root)
 	if len(result) == 1 {
 		return nodeToLiteral(result[0])
 	}

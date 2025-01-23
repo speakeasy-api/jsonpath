@@ -2,6 +2,7 @@ package token
 
 import (
 	"fmt"
+	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
 	"strconv"
 	"strings"
 )
@@ -172,6 +173,7 @@ const (
 	ROOT
 	CURRENT
 	WILDCARD
+	PROPERTY_NAME
 	RECURSIVE
 	CHILD
 	ARRAY_SLICE
@@ -391,14 +393,17 @@ type Tokenizer struct {
 	tokens            []TokenInfo
 	stack             []Token
 	illegalWhitespace bool
+	config            config.Config
 }
 
 // NewTokenizer creates a new JSONPath tokenizer for the given input string.
-func NewTokenizer(input string) *Tokenizer {
+func NewTokenizer(input string, opts ...config.Option) *Tokenizer {
+	cfg := config.New(opts...)
 	return &Tokenizer{
-		input: input,
-		line:  1,
-		stack: make([]Token, 0),
+		input:  input,
+		config: cfg,
+		line:   1,
+		stack:  make([]Token, 0),
 	}
 }
 
@@ -419,6 +424,12 @@ func (t *Tokenizer) Tokenize() Tokens {
 			t.addToken(CURRENT, 1, "")
 		case ch == '*':
 			t.addToken(WILDCARD, 1, "")
+		case ch == '~':
+			if t.config.PropertyNameEnabled() {
+				t.addToken(PROPERTY_NAME, 1, "")
+			} else {
+				t.addToken(ILLEGAL, 1, "invalid property name token without config.PropertyNameExtension set to true")
+			}
 		case ch == '.':
 			if t.peek() == '.' {
 				t.addToken(RECURSIVE, 2, "")

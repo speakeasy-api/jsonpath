@@ -235,7 +235,7 @@ func TestComparableEvaluate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := tc.comparable.Evaluate(tc.node, tc.root)
+			result := tc.comparable.Evaluate(index{}, tc.node, tc.root)
 			if !reflect.DeepEqual(result, tc.expected) {
 				t.Errorf("Expected %v, but got %v", tc.expected, result)
 			}
@@ -269,7 +269,7 @@ func TestSingularQueryEvaluate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := tc.query.Evaluate(tc.node, tc.root)
+			result := tc.query.Evaluate(index{}, tc.node, tc.root)
 			if !reflect.DeepEqual(result, tc.expected) {
 				t.Errorf("Expected %v, but got %v", tc.expected, result)
 			}
@@ -293,8 +293,8 @@ func TestRelQueryEvaluate(t *testing.T) {
 			expected: literal{integer: intPtr(10)},
 		},
 		{
-			name:     "Child segment",
-			query:    relQuery{segments: []*segment{{Child: &innerSegment{kind: segmentDotMemberName, dotName: "foo"}}}},
+			name:     "child segment",
+			query:    relQuery{segments: []*segment{{kind: segmentKindChild, child: &innerSegment{kind: segmentDotMemberName, dotName: "foo"}}}},
 			node:     yamlNodeFromString(`{"foo": "bar"}`),
 			root:     yamlNodeFromString(`{"foo": "bar"}`),
 			expected: literal{string: stringPtr("bar")},
@@ -303,7 +303,7 @@ func TestRelQueryEvaluate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := tc.query.Evaluate(tc.node, tc.root)
+			result := tc.query.Evaluate(index{}, tc.node, tc.root)
 			if !reflect.DeepEqual(result, tc.expected) {
 				t.Errorf("Expected %v, but got %v", tc.expected, result)
 			}
@@ -327,8 +327,8 @@ func TestAbsQueryEvaluate(t *testing.T) {
 			expected: literal{integer: intPtr(10)},
 		},
 		{
-			name:     "Child segment",
-			query:    absQuery{segments: []*segment{{Child: &innerSegment{kind: segmentDotMemberName, dotName: "foo"}}}},
+			name:     "child segment",
+			query:    absQuery{segments: []*segment{{kind: segmentKindChild, child: &innerSegment{kind: segmentDotMemberName, dotName: "foo"}}}},
 			node:     yamlNodeFromString(`{"foo": "bar"}`),
 			root:     yamlNodeFromString(`{"foo": "bar"}`),
 			expected: literal{string: stringPtr("bar")},
@@ -337,7 +337,7 @@ func TestAbsQueryEvaluate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := tc.query.Evaluate(tc.node, tc.root)
+			result := tc.query.Evaluate(index{}, tc.node, tc.root)
 			if !reflect.DeepEqual(result, tc.expected) {
 				t.Errorf("Expected %v, but got %v", tc.expected, result)
 			}
