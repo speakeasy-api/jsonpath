@@ -65,6 +65,11 @@ func (p *JSONPath) peek(token token.Token) bool {
 	return p.current+1 < len(p.tokens) && p.tokens[p.current+1].Token == token
 }
 
+// peek returns true if the upcoming token matches the given token type.
+func (p *JSONPath) next(token token.Token) bool {
+	return p.current < len(p.tokens) && p.tokens[p.current].Token == token
+}
+
 // expect consumes the current token if it matches the given token type.
 func (p *JSONPath) expect(token token.Token) bool {
 	if p.peek(token) {
@@ -340,7 +345,7 @@ func (p *JSONPath) parseLogicalOrExpr() (*logicalOrExpr, error) {
 		}
 		expr.expressions = append(expr.expressions, andExpr)
 
-		if p.tokens[p.current].Token != token.OR {
+		if !p.next(token.OR) {
 			break
 		}
 		p.current++
@@ -359,7 +364,7 @@ func (p *JSONPath) parseLogicalAndExpr() (*logicalAndExpr, error) {
 		}
 		expr.expressions = append(expr.expressions, basicExpr)
 
-		if p.tokens[p.current].Token != token.AND {
+		if !p.next(token.AND) {
 			break
 		}
 		p.current++
