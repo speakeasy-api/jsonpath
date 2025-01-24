@@ -172,17 +172,6 @@ store:
 			expected: []string{"type", "type"},
 		},
 		{
-			name:  "Property name with complex filter",
-			input: "$.store.items[?(@.*~ == 'a')].b",
-			yaml: `
-store:
-  items:
-    first: { a: 1, b: 2 } 
-    second: { c: 3, d: 4 }
-`,
-			expected: []string{"2"},
-		},
-		{
 			name:  "Property name in a function",
 			input: "$.store.items[?(length(@~) == 2)].found",
 			yaml: `

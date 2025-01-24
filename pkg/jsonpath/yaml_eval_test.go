@@ -235,7 +235,7 @@ func TestComparableEvaluate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := tc.comparable.Evaluate(index{}, tc.node, tc.root)
+			result := tc.comparable.Evaluate(&_index{}, tc.node, tc.root)
 			if !reflect.DeepEqual(result, tc.expected) {
 				t.Errorf("Expected %v, but got %v", tc.expected, result)
 			}
@@ -269,7 +269,7 @@ func TestSingularQueryEvaluate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := tc.query.Evaluate(index{}, tc.node, tc.root)
+			result := tc.query.Evaluate(&_index{}, tc.node, tc.root)
 			if !reflect.DeepEqual(result, tc.expected) {
 				t.Errorf("Expected %v, but got %v", tc.expected, result)
 			}
@@ -303,7 +303,7 @@ func TestRelQueryEvaluate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := tc.query.Evaluate(index{}, tc.node, tc.root)
+			result := tc.query.Evaluate(&_index{}, tc.node, tc.root)
 			if !reflect.DeepEqual(result, tc.expected) {
 				t.Errorf("Expected %v, but got %v", tc.expected, result)
 			}
@@ -337,7 +337,7 @@ func TestAbsQueryEvaluate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := tc.query.Evaluate(index{}, tc.node, tc.root)
+			result := tc.query.Evaluate(&_index{}, tc.node, tc.root)
 			if !reflect.DeepEqual(result, tc.expected) {
 				t.Errorf("Expected %v, but got %v", tc.expected, result)
 			}

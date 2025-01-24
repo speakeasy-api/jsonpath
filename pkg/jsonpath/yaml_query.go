@@ -8,15 +8,33 @@ type Evaluator interface {
 	Query(current *yaml.Node, root *yaml.Node) []*yaml.Node
 }
 
-type index struct {
+type index interface {
+	setPropertyKey(key *yaml.Node, value *yaml.Node)
+	getPropertyKey(key *yaml.Node) *yaml.Node
+}
+
+type _index struct {
 	propertyKeys map[*yaml.Node]*yaml.Node
+}
+
+func (i *_index) setPropertyKey(key *yaml.Node, value *yaml.Node) {
+	if i != nil && i.propertyKeys != nil {
+		i.propertyKeys[key] = value
+	}
+}
+
+func (i *_index) getPropertyKey(key *yaml.Node) *yaml.Node {
+	if i != nil {
+		return i.propertyKeys[key]
+	}
+	return nil
 }
 
 // jsonPathAST can be Evaluated
 var _ Evaluator = jsonPathAST{}
 
 func (q jsonPathAST) Query(current *yaml.Node, root *yaml.Node) []*yaml.Node {
-	idx := index{
+	idx := _index{
 		propertyKeys: map[*yaml.Node]*yaml.Node{},
 	}
 	result := make([]*yaml.Node, 0)
@@ -29,7 +47,7 @@ func (q jsonPathAST) Query(current *yaml.Node, root *yaml.Node) []*yaml.Node {
 	for _, segment := range q.segments {
 		newValue := []*yaml.Node{}
 		for _, value := range result {
-			newValue = append(newValue, segment.Query(idx, value, root)...)
+			newValue = append(newValue, segment.Query(&idx, value, root)...)
 		}
 		result = newValue
 	}
@@ -51,8 +69,8 @@ func (s segment) Query(idx index, value *yaml.Node, root *yaml.Node) []*yaml.Nod
 		result = unique(result)
 		return result
 	case segmentKindProperyName:
-		found, ok := idx.propertyKeys[value]
-		if ok {
+		found := idx.getPropertyKey(value)
+		if found != nil {
 			return []*yaml.Node{found}
 		}
 		return []*yaml.Node{}
@@ -85,7 +103,7 @@ func (s innerSegment) Query(idx index, value *yaml.Node, root *yaml.Node) []*yam
 			// we just want to return the values
 			for i, child := range value.Content {
 				if i%2 == 1 {
-					idx.propertyKeys[child] = value.Content[i-1]
+					idx.setPropertyKey(child, value.Content[i-1])
 					result = append(result, child)
 				}
 			}
@@ -105,7 +123,7 @@ func (s innerSegment) Query(idx index, value *yaml.Node, root *yaml.Node) []*yam
 				val := value.Content[i+1]
 
 				if key.Value == s.dotName {
-					idx.propertyKeys[val] = key
+					idx.setPropertyKey(val, key)
 					result = append(result, val)
 					break
 				}
@@ -139,7 +157,7 @@ func (s selector) Query(idx index, value *yaml.Node, root *yaml.Node) []*yaml.No
 				continue
 			}
 			if key == s.name {
-				idx.propertyKeys[child] = value.Content[i]
+				idx.setPropertyKey(child, value.Content[i])
 				return []*yaml.Node{child}
 			}
 		}
@@ -163,7 +181,7 @@ func (s selector) Query(idx index, value *yaml.Node, root *yaml.Node) []*yaml.No
 			var result []*yaml.Node
 			for i, child := range value.Content {
 				if i%2 == 1 {
-					idx.propertyKeys[child] = value.Content[i-1]
+					idx.setPropertyKey(child, value.Content[i-1])
 					result = append(result, child)
 				}
 			}
@@ -205,7 +223,7 @@ func (s selector) Query(idx index, value *yaml.Node, root *yaml.Node) []*yaml.No
 		switch value.Kind {
 		case yaml.MappingNode:
 			for i := 1; i < len(value.Content); i += 2 {
-				idx.propertyKeys[value.Content[i]] = value.Content[i-1]
+				idx.setPropertyKey(value.Content[i], value.Content[i-1])
 				if s.filter.Matches(idx, value.Content[i], root) {
 					result = append(result, value.Content[i])
 				}
