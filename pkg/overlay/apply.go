@@ -2,6 +2,7 @@ package overlay
 
 import (
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
+	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
 	"gopkg.in/yaml.v3"
 )
 
@@ -31,7 +32,7 @@ func applyRemoveAction(root *yaml.Node, action Action) error {
 
 	idx := newParentIndex(root)
 
-	p, err := jsonpath.NewPath(action.Target)
+	p, err := jsonpath.NewPath(action.Target, config.WithPropertyNameExtension())
 	if err != nil {
 		return err
 	}
@@ -78,7 +79,7 @@ func applyUpdateAction(root *yaml.Node, action Action) error {
 		return nil
 	}
 
-	p, err := jsonpath.NewPath(action.Target)
+	p, err := jsonpath.NewPath(action.Target, config.WithPropertyNameExtension())
 	if err != nil {
 		return err
 	}
