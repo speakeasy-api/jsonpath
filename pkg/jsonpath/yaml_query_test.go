@@ -205,6 +205,34 @@ deeply:
 `,
 			expected: []string{"object"},
 		},
+		{
+			name:  "All property names on a nested object",
+			input: "$.deeply.nested.object[*]~",
+			yaml: `
+deeply:
+  nested:
+    object:
+      key1: value1
+      key2: value2
+`,
+			expected: []string{"key1", "key2"},
+		},
+		{
+			name:  "All property names on multiple nested objects",
+			input: "$.deeply.[*].object[*]~",
+			yaml: `
+deeply:
+  nested:
+    object:
+      key1: value1
+      key2: value2
+  nested2:
+    object:
+      key3: value3
+      key4: value4
+`,
+			expected: []string{"key1", "key2", "key3", "key4"},
+		},
 	}
 
 	for _, test := range tests {
