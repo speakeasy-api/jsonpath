@@ -38,6 +38,23 @@ const Link = ({ children, href }: { children: ReactNode; href: string }) => (
   </a>
 );
 
+const tryHandlePageTitle = ({
+  title,
+  version,
+}: {
+  title: string;
+  version: string;
+}) => {
+  try {
+    const pageTitle = `${title} ${version} | Speakeasy OpenAPI Overlay Playground`;
+    if (document.title !== pageTitle) {
+      document.title = pageTitle;
+    }
+  } catch (e: unknown) {
+    console.error(e);
+  }
+};
+
 function Playground() {
   const [ready, setReady] = useState(false);
 
@@ -136,8 +153,10 @@ function Playground() {
           );
           if (changedNew.type == "success") {
             const info = await GetInfo(original.current, false);
+            const parsedInfo = JSON.parse(info);
+            tryHandlePageTitle(parsedInfo);
             posthog.capture("overlay.speakeasy.com:load-shared", {
-              openapi: JSON.parse(info),
+              openapi: parsedInfo,
             });
             changed.current = changedNew.result;
           }
@@ -179,6 +198,8 @@ function Playground() {
           true,
         );
         result.current = res;
+        const info = await GetInfo(original.current, false);
+        tryHandlePageTitle(JSON.parse(info));
         setError("");
       } catch (e: unknown) {
         if (e instanceof Error) {
@@ -204,6 +225,8 @@ function Playground() {
           result.current,
           true,
         );
+        const info = await GetInfo(changed.current, false);
+        tryHandlePageTitle(JSON.parse(info));
         setError("");
       } catch (e: unknown) {
         if (e instanceof Error) {
@@ -233,6 +256,8 @@ function Playground() {
           changed.current = response.result || "";
           setError("");
           setOverlayMarkers([]);
+          const info = await GetInfo(changed.current, false);
+          tryHandlePageTitle(JSON.parse(info));
         } else if (response.type == "incomplete") {
           setApplyOverlayMode("jsonpathexplorer");
           changed.current = response.result || "";
@@ -263,22 +288,6 @@ function Playground() {
   );
 
   const onChangeCDebounced = useDebounceCallback(onChangeC, 500);
-
-  useEffect(() => {
-    const tryHandlePageTitle = async () => {
-      try {
-        const info = await GetInfo(original.current);
-        const { title, version } = JSON.parse(info);
-        const pageTitle = `${title} ${version} | Speakeasy OpenAPI Overlay Playground`;
-        if (document.title !== pageTitle) {
-          document.title = pageTitle;
-        }
-      } catch (e: unknown) {
-        console.error(e);
-      }
-    };
-    tryHandlePageTitle();
-  }, [original]);
 
   const ref = useRef<ImperativePanelGroupHandle>(null);
 
