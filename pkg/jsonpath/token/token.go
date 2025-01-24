@@ -533,6 +533,9 @@ func (t *Tokenizer) Tokenize() Tokens {
 		t.column++
 	}
 
+	if len(t.stack) > 0 {
+		t.addToken(ILLEGAL, 1, fmt.Sprintf("unmatched %s", t.stack[len(t.stack)-1].String()))
+	}
 	return t.tokens
 }
 

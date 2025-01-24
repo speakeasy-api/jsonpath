@@ -158,6 +158,18 @@ func TestParserPropertyNameExtension(t *testing.T) {
 			enabled: false,
 			valid:   false,
 		},
+		{
+			name:    "Missing closing a filter expression shouldn't crash",
+			input:   "$.paths.*.*[?(!@.servers)",
+			enabled: false,
+			valid:   false,
+		},
+		{
+			name:    "Missing closing a array crash",
+			input:   "$.paths.*[?@[\"x-my-ignore\"]",
+			enabled: false,
+			valid:   false,
+		},
 	}
 
 	for _, test := range tests {
