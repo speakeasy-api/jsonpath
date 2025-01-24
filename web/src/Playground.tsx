@@ -8,7 +8,7 @@ import {
 } from "react";
 import "./App.css";
 import { Editor } from "./components/Editor";
-import {editor, MarkerSeverity} from "monaco-editor";
+import { editor, MarkerSeverity } from "monaco-editor";
 import { ApplyOverlay, CalculateOverlay, GetInfo } from "./bridge";
 import { Alert } from "@speakeasy-api/moonshine";
 import { blankOverlay, petstore } from "./defaults";
@@ -222,26 +222,31 @@ function Playground() {
     async (value: string | undefined, _: editor.IModelContentChangedEvent) => {
       try {
         setChangedLoading(true);
-        const result = await ApplyOverlay(original.current, value || "", true);
-        if (result.type == "success") {
+        result.current = value || "";
+        const response = await ApplyOverlay(
+          original.current,
+          result.current,
+          true,
+        );
+        if (response.type == "success") {
           setApplyOverlayMode("original+overlay");
-          changed.current = result.result || "";
+          changed.current = response.result || "";
           setError("");
           setOverlayMarkers([]);
-        } else if (result.type == "incomplete") {
+        } else if (response.type == "incomplete") {
           setApplyOverlayMode("jsonpathexplorer");
-          changed.current = result.result || "";
+          changed.current = response.result || "";
           setError("");
           setOverlayMarkers([]);
-        } else if (result.type == "error") {
+        } else if (response.type == "error") {
           setApplyOverlayMode("jsonpathexplorer");
           setOverlayMarkers([
             {
-              startLineNumber: result.line,
-              endLineNumber: result.line,
-              startColumn: result.col,
-              endColumn: result.col + 1000, // end of line
-              message: result.error,
+              startLineNumber: response.line,
+              endLineNumber: response.line,
+              startColumn: response.col,
+              endColumn: response.col + 1000, // end of line
+              message: response.error,
               severity: MarkerSeverity.Error, // Use MarkerSeverity from Monaco
             },
           ]);
