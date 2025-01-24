@@ -8,7 +8,7 @@ import {
 } from "react";
 import "./App.css";
 import { Editor } from "./components/Editor";
-import { editor } from "monaco-editor";
+import {editor, MarkerSeverity} from "monaco-editor";
 import { ApplyOverlay, CalculateOverlay, GetInfo } from "./bridge";
 import { Alert } from "@speakeasy-api/moonshine";
 import { blankOverlay, petstore } from "./defaults";
@@ -44,11 +44,21 @@ function Playground() {
   const original = useRef(petstore);
   const changed = useRef("");
   const [changedLoading, setChangedLoading] = useState(false);
+  const [applyOverlayMode, setApplyOverlayMode] = useState<
+    "original+overlay" | "jsonpathexplorer"
+  >("original+overlay");
+  let appliedPanelTitle = "Original + Overlay";
+  if (applyOverlayMode == "jsonpathexplorer") {
+    appliedPanelTitle = "JSONPath Explorer";
+  }
   const result = useRef(blankOverlay);
   const [resultLoading, setResultLoading] = useState(false);
   const [error, setError] = useState("");
   const [shareUrl, setShareUrl] = useState("");
   const [shareUrlLoading, setShareUrlLoading] = useState(false);
+  const [overlayMarkers, setOverlayMarkers] = useState<editor.IMarkerData[]>(
+    [],
+  );
   const isSmallScreen = useMediaQuery("(max-width: 768px)");
   const clearError = useCallback(() => {
     setError("");
@@ -124,22 +134,34 @@ function Playground() {
             result.current,
             false,
           );
-          const info = await GetInfo(original.current, false);
-          posthog.capture("overlay.speakeasy.com:load-shared", {
-            openapi: JSON.parse(info),
-          });
-
-          changed.current = changedNew;
+          if (changedNew.type == "success") {
+            const info = await GetInfo(original.current, false);
+            posthog.capture("overlay.speakeasy.com:load-shared", {
+              openapi: JSON.parse(info),
+            });
+            changed.current = changedNew.result;
+          }
         } catch (error: any) {
           console.error("invalid share url:", error.message);
         }
       } else {
-        const changedNew = await ApplyOverlay(
-          original.current,
-          result.current,
-          false,
-        );
-        changed.current = changedNew;
+        try {
+          const changedNew = await ApplyOverlay(
+            original.current,
+            result.current,
+            false,
+          );
+          if (changedNew.type == "success") {
+            changed.current = changedNew.result;
+          }
+        } catch (e: unknown) {
+          if (e instanceof Error) {
+            setError(e.message);
+          } else {
+            setError(JSON.stringify(e));
+          }
+          console.error(e);
+        }
       }
       setReady(true);
     })();
@@ -200,13 +222,30 @@ function Playground() {
     async (value: string | undefined, _: editor.IModelContentChangedEvent) => {
       try {
         setChangedLoading(true);
-        result.current = value || "";
-        changed.current = await ApplyOverlay(
-          original.current,
-          value || "",
-          true,
-        );
-        setError("");
+        const result = await ApplyOverlay(original.current, value || "", true);
+        if (result.type == "success") {
+          setApplyOverlayMode("original+overlay");
+          changed.current = result.result || "";
+          setError("");
+          setOverlayMarkers([]);
+        } else if (result.type == "incomplete") {
+          setApplyOverlayMode("jsonpathexplorer");
+          changed.current = result.result || "";
+          setError("");
+          setOverlayMarkers([]);
+        } else if (result.type == "error") {
+          setApplyOverlayMode("jsonpathexplorer");
+          setOverlayMarkers([
+            {
+              startLineNumber: result.line,
+              endLineNumber: result.line,
+              startColumn: result.col,
+              endColumn: result.col + 1000, // end of line
+              message: result.error,
+              severity: MarkerSeverity.Error, // Use MarkerSeverity from Monaco
+            },
+          ]);
+        }
       } catch (e: unknown) {
         if (e instanceof Error) {
           setError(e.message);
@@ -387,11 +426,15 @@ function Playground() {
             <div style={{ height: "calc(100vh - 50px)" }}>
               <Editor
                 readonly={false}
-                original={original.current}
+                original={
+                  applyOverlayMode == "original+overlay"
+                    ? original.current
+                    : undefined
+                }
                 value={changed.current}
                 onChange={onChangeBDebounced}
                 loading={changedLoading}
-                title={"Original + Overlay"}
+                title={appliedPanelTitle}
                 index={1}
                 maxOnClick={maxLayout}
               />
@@ -405,6 +448,7 @@ function Playground() {
                 value={result.current}
                 onChange={onChangeCDebounced}
                 loading={resultLoading}
+                markers={overlayMarkers}
                 title={"Overlay"}
                 index={2}
                 maxOnClick={maxLayout}

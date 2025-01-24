@@ -103,11 +103,11 @@ type resolvedArgument struct {
 	nodes   []*literal
 }
 
-func (a functionArgument) Eval(node *yaml.Node, root *yaml.Node) resolvedArgument {
+func (a functionArgument) Eval(idx index, node *yaml.Node, root *yaml.Node) resolvedArgument {
 	if a.literal != nil {
 		return resolvedArgument{kind: functionArgTypeLiteral, literal: a.literal}
 	} else if a.filterQuery != nil {
-		result := a.filterQuery.Query(node, root)
+		result := a.filterQuery.Query(idx, node, root)
 		lits := make([]*literal, len(result))
 		for i, node := range result {
 			lit := nodeToLiteral(node)
@@ -119,10 +119,10 @@ func (a functionArgument) Eval(node *yaml.Node, root *yaml.Node) resolvedArgumen
 			return resolvedArgument{kind: functionArgTypeLiteral, literal: lits[0]}
 		}
 	} else if a.logicalExpr != nil {
-		res := a.logicalExpr.Matches(node, root)
+		res := a.logicalExpr.Matches(idx, node, root)
 		return resolvedArgument{kind: functionArgTypeLiteral, literal: &literal{bool: &res}}
 	} else if a.functionExpr != nil {
-		res := a.functionExpr.Evaluate(node, root)
+		res := a.functionExpr.Evaluate(idx, node, root)
 		return resolvedArgument{kind: functionArgTypeLiteral, literal: &res}
 	}
 	return resolvedArgument{}

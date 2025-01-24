@@ -2,6 +2,7 @@ package jsonpath_test
 
 import (
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
+	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -81,6 +82,87 @@ func TestParser(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			path, err := jsonpath.NewPath(test.input)
 			if test.invalid {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, test.input, path.String())
+		})
+	}
+}
+
+func TestParserPropertyNameExtension(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		enabled bool
+		valid   bool
+	}{
+		{
+			name:    "Simple property name disabled",
+			input:   "$.store~",
+			enabled: false,
+			valid:   false,
+		},
+		{
+			name:    "Simple property name enabled",
+			input:   "$.store~",
+			enabled: true,
+			valid:   true,
+		},
+		{
+			name:    "Property name in filter disabled",
+			input:   "$[?(@~)]",
+			enabled: false,
+			valid:   false,
+		},
+		{
+			name:    "Property name in filter enabled",
+			input:   "$[?(@~)]",
+			enabled: true,
+			valid:   true,
+		},
+		{
+			name:    "Property name with bracket notation enabled",
+			input:   "$['store']~",
+			enabled: true,
+			valid:   true,
+		},
+		{
+			name:    "Property name with bracket notation disabled",
+			input:   "$['store']~",
+			enabled: false,
+			valid:   false,
+		},
+		{
+			name:    "Chained property names enabled",
+			input:   "$.store~.name~",
+			enabled: true,
+			valid:   true,
+		},
+		{
+			name:    "Property name in complex filter enabled",
+			input:   "$[?(@~ && @.price < 10)]",
+			enabled: true,
+			valid:   true,
+		},
+		{
+			name:    "Property name in complex filter disabled",
+			input:   "$[?(@~ && @.price < 10)]",
+			enabled: false,
+			valid:   false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var opts []config.Option
+			if test.enabled {
+				opts = append(opts, config.WithPropertyNameExtension())
+			}
+
+			path, err := jsonpath.NewPath(test.input, opts...)
+			if !test.valid {
 				require.Error(t, err)
 				return
 			}

@@ -5,9 +5,18 @@ import (
 	"strings"
 )
 
+type segmentKind int
+
+const (
+	segmentKindChild       segmentKind = iota // .
+	segmentKindDescendant                     // ..
+	segmentKindProperyName                    // ~ (extension only)
+)
+
 type segment struct {
-	Child      *innerSegment
-	Descendant *innerSegment
+	kind       segmentKind
+	child      *innerSegment
+	descendant *innerSegment
 }
 
 type segmentSubKind int
@@ -19,17 +28,19 @@ const (
 )
 
 func (s segment) ToString() string {
-	if s.Child != nil {
-		if s.Child.kind != segmentLongHand {
-			return "." + s.Child.ToString()
+	switch s.kind {
+	case segmentKindChild:
+		if s.child.kind != segmentLongHand {
+			return "." + s.child.ToString()
 		} else {
-			return s.Child.ToString()
+			return s.child.ToString()
 		}
-	} else if s.Descendant != nil {
-		return ".." + s.Descendant.ToString()
-	} else {
-		panic("no segment")
+	case segmentKindDescendant:
+		return ".." + s.descendant.ToString()
+	case segmentKindProperyName:
+		return "~"
 	}
+	panic("unknown segment kind")
 }
 
 type innerSegment struct {

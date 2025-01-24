@@ -98,6 +98,25 @@ export type ApplyOverlayMessage = {
       };
 };
 
+export type QueryJSONPathMessage = {
+  Request: {
+    type: "QueryJSONPath";
+    payload: {
+      source: string;
+      jsonpath: string;
+    };
+  };
+  Response:
+    | {
+        type: "QueryJSONPathResult";
+        payload: string;
+      }
+    | {
+        type: "QueryJSONPathError";
+        error: string;
+      };
+};
+
 export function CalculateOverlay(
   from: string,
   to: string,
@@ -113,16 +132,55 @@ export function CalculateOverlay(
   );
 }
 
-export function ApplyOverlay(
+type IncompleteOverlayErrorMessage = {
+  type: "incomplete";
+  line: number;
+  col: number;
+  result: string;
+};
+
+type JSONPathErrorMessage = {
+  type: "error";
+  line: number;
+  col: number;
+  error: string;
+};
+
+type ApplyOverlayResultMessage = {
+  type: "success";
+  result: string;
+};
+
+type ApplyOverlaySuccess =
+  | ApplyOverlayResultMessage
+  | IncompleteOverlayErrorMessage
+  | JSONPathErrorMessage;
+
+export async function ApplyOverlay(
   source: string,
   overlay: string,
   supercede = false,
-): Promise<string> {
-  return sendMessage(
+): Promise<ApplyOverlaySuccess> {
+  const result = await sendMessage(
     {
       type: "ApplyOverlay",
       payload: { source, overlay },
     } satisfies ApplyOverlayMessage["Request"],
+    supercede,
+  );
+  return JSON.parse(result);
+}
+
+export function QueryJSONPath(
+  source: string,
+  jsonpath: string,
+  supercede = false,
+): Promise<string> {
+  return sendMessage(
+    {
+      type: "QueryJSONPath",
+      payload: { source, jsonpath },
+    } satisfies QueryJSONPathMessage["Request"],
     supercede,
   );
 }

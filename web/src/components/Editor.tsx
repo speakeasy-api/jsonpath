@@ -21,6 +21,7 @@ export interface EditorComponentProps {
   original?: string;
   loading?: boolean;
   title: string;
+  markers?: editor.IMarkerData[];
   index: number;
   maxOnClick?: (index: number) => void;
   onChange: (
@@ -152,6 +153,16 @@ export function Editor(props: EditorComponentProps) {
       setProgress(0);
     }
   }, [isLoading]);
+
+  useEffect(() => {
+    if (modelRef?.current) {
+      monacoRef.current?.editor?.setModelMarkers(
+        modelRef?.current,
+        "diagnostics",
+        props.markers || [],
+      );
+    }
+  }, [props.markers]);
 
   const wrapperStyles = useMemo(() => {
     if (isLoading) {

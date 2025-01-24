@@ -5,12 +5,14 @@ import type {
   CalculateOverlayMessage,
   ApplyOverlayMessage,
   GetInfoMessage,
+  QueryJSONPathMessage,
 } from "./bridge";
 
 const _wasmExecutors = {
   CalculateOverlay: (..._: any): any => false,
   ApplyOverlay: (..._: any): any => false,
   GetInfo: (..._: any): any => false,
+  QueryJSONPath: (..._: any): any => false,
 } as const;
 
 type MessageHandlers = {
@@ -28,6 +30,11 @@ const messageHandlers: MessageHandlers = {
   },
   GetInfo: async (payload: GetInfoMessage["Request"]["payload"]) => {
     return exec("GetInfo", payload.openapi);
+  },
+  QueryJSONPath: async (
+    payload: QueryJSONPathMessage["Request"]["payload"],
+  ) => {
+    return exec("QueryJSONPath", payload.source, payload.jsonpath);
   },
 };
 

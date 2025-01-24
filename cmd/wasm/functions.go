@@ -3,10 +3,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
+	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
 	"github.com/speakeasy-api/jsonpath/pkg/overlay"
 	"gopkg.in/yaml.v3"
+	"reflect"
 	"syscall/js"
 )
 
@@ -27,7 +30,7 @@ func CalculateOverlay(originalYAML, targetYAML, existingOverlay string) (string,
 	var existingOverlayDocument overlay.Overlay
 	err = yaml.Unmarshal([]byte(existingOverlay), &existingOverlayDocument)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse overlay schema: %w", err)
+		return "", fmt.Errorf("failed to parse overlay schema in CalculateOverlay: %w", err)
 	}
 	// now modify the original using the existing overlay
 	err = existingOverlayDocument.ApplyTo(&orig)
@@ -88,6 +91,11 @@ func GetInfo(originalYAML string) (string, error) {
 }`, nil
 }
 
+type ApplyOverlaySuccess struct {
+	Type   string `json:"type"`
+	Result string `json:"result"`
+}
+
 func ApplyOverlay(originalYAML, overlayYAML string) (string, error) {
 	var orig yaml.Node
 	err := yaml.Unmarshal([]byte(originalYAML), &orig)
@@ -98,7 +106,31 @@ func ApplyOverlay(originalYAML, overlayYAML string) (string, error) {
 	var overlay overlay.Overlay
 	err = yaml.Unmarshal([]byte(overlayYAML), &overlay)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse overlay schema: %w", err)
+		return "", fmt.Errorf("failed to parse overlay schema in ApplyOverlay: %w", err)
+	}
+
+	// check to see if we have an overlay with an error, or a partial overlay: i.e. any overlay actions are missing an update or remove
+	for i, action := range overlay.Actions {
+		parsed, pathErr := jsonpath.NewPath(action.Target, config.WithPropertyNameExtension())
+		var node *yaml.Node
+		if pathErr != nil {
+			node, err = lookupOverlayActionTargetNode(overlayYAML, i)
+			if err != nil {
+				return "", err
+			}
+
+			return applyOverlayJSONPathError(pathErr, node)
+		}
+		if reflect.ValueOf(action.Update).IsZero() && action.Remove == false {
+			result := parsed.Query(&orig)
+
+			node, err = lookupOverlayActionTargetNode(overlayYAML, i)
+			if err != nil {
+				return "", err
+			}
+
+			return applyOverlayJSONPathIncomplete(result, node)
+		}
 	}
 
 	err = overlay.ApplyTo(&orig)
@@ -116,6 +148,88 @@ func ApplyOverlay(originalYAML, overlayYAML string) (string, error) {
 		return "", fmt.Errorf("failed to marshal result: %w", err)
 	}
 
+	out, err = json.Marshal(ApplyOverlaySuccess{
+		Type:   "success",
+		Result: string(out),
+	})
+
+	return string(out), err
+}
+
+type IncompleteOverlayErrorMessage struct {
+	Type   string `json:"type"`
+	Line   int    `json:"line"`
+	Col    int    `json:"col"`
+	Result string `json:"result"`
+}
+
+func applyOverlayJSONPathIncomplete(result []*yaml.Node, node *yaml.Node) (string, error) {
+	yamlResult, err := yaml.Marshal(result)
+	if err != nil {
+		return "", err
+	}
+	out, err := json.Marshal(IncompleteOverlayErrorMessage{
+		Type:   "incomplete",
+		Line:   node.Line,
+		Col:    node.Column,
+		Result: string(yamlResult),
+	})
+	return string(out), err
+}
+
+type JSONPathErrorMessage struct {
+	Type       string `json:"type"`
+	Line       int    `json:"line"`
+	Col        int    `json:"col"`
+	ErrMessage string `json:"error"`
+}
+
+func applyOverlayJSONPathError(err error, node *yaml.Node) (string, error) {
+	// first lets see if we can find a target expression
+	out, err := json.Marshal(JSONPathErrorMessage{
+		Type:       "error",
+		Line:       node.Line,
+		Col:        node.Column,
+		ErrMessage: err.Error(),
+	})
+	return string(out), err
+}
+
+func lookupOverlayActionTargetNode(overlayYAML string, i int) (*yaml.Node, error) {
+	var node struct {
+		Actions []struct {
+			Target yaml.Node `yaml:"target"`
+		} `yaml:"actions"`
+	}
+	err := yaml.Unmarshal([]byte(overlayYAML), &node)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse overlay schema in lookupOverlayActionTargetNode: %w", err)
+	}
+	if len(node.Actions) <= i {
+		return nil, fmt.Errorf("no action at index %d", i)
+	}
+	if reflect.ValueOf(node.Actions[i].Target).IsZero() {
+		return nil, fmt.Errorf("no target at index %d", i)
+	}
+	return &node.Actions[i].Target, nil
+}
+
+func Query(currentYAML, path string) (string, error) {
+	var orig yaml.Node
+	err := yaml.Unmarshal([]byte(currentYAML), &orig)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse original schema in Query: %w", err)
+	}
+	parsed, err := jsonpath.NewPath(path, config.WithPropertyNameExtension())
+	if err != nil {
+		return "", err
+	}
+	result := parsed.Query(&orig)
+	// Marshal it back out
+	out, err := yaml.Marshal(result)
+	if err != nil {
+		return "", err
+	}
 	return string(out), nil
 }
 
@@ -172,6 +286,13 @@ func main() {
 		}
 
 		return GetInfo(args[0].String())
+	}))
+	js.Global().Set("QueryJSONPath", promisify(func(args []js.Value) (string, error) {
+		if len(args) != 1 {
+			return "", fmt.Errorf("Query: expected 2 args, got %v", len(args))
+		}
+
+		return Query(args[0].String(), args[1].String())
 	}))
 
 	<-make(chan bool)
