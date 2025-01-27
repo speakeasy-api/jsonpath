@@ -18,19 +18,5 @@ actions:
         "$ref": "./removeNote.yaml"
   - target: $["paths"]["/drinks"]["get"]
     remove: true
-  - target: $["paths"]["/drink/{name}"]["get"]["parameters"]
-    update:
-      - x-parameter-extension: foo
-        name: test
-        description: Test parameter
-        in: query
-        schema:
-          type: string
-  - target: $["paths"]["/drink/{name}"]["get"]["responses"]["200"]["description"]
-    update: Test response
-  - target: $["paths"]["/drink/{name}"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
-    update:
-      type: string
-  - target: $["paths"]["/drink/{name}"]["get"]["responses"]["200"]
-    update:
-      x-response-extension: foo
+  - target: $["paths"]["/drink/{name}"]["get"]
+    remove: true
