@@ -817,6 +817,7 @@ components:
 `;
 
 export const blankOverlay = `overlay: 1.0.0
+x-speakeasy-jsonpath: rfc9535
 info:
     title: example overlay
     version: 0.0.0

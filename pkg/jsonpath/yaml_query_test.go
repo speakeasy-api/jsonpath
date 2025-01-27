@@ -107,7 +107,7 @@ store:
 			parser := newParserPrivate(tokenizer, tokenizer.Tokenize())
 			err = parser.parse()
 			if err != nil {
-				t.Errorf("Error parsing JSON ast: %v", err)
+				t.Errorf("Error parsing JSON Path: %v", err)
 				return
 			}
 
@@ -233,6 +233,28 @@ deeply:
 `,
 			expected: []string{"key1", "key2", "key3", "key4"},
 		},
+		{
+			name:  "Custom x-my-ignore extension filter",
+			input: "$.paths[?@[\"x-my-ignore\"][?@ == \"match\"]].found",
+			yaml: `
+openapi: 3.1.0
+info:
+  title: Test
+  version: 0.1.0
+  summary: Test Summary
+  description: |-
+    Some test description.
+    About our test document.
+paths:
+  /anything/ignored:
+    x-my-ignore: [match, not_matched]
+    found: true
+  /anything/not-ignored:
+    x-my-ignore: [not_matched]
+    found: false
+`,
+			expected: []string{"true"},
+		},
 	}
 
 	for _, test := range tests {
@@ -248,7 +270,7 @@ deeply:
 			parser := newParserPrivate(tokenizer, tokenizer.Tokenize(), config.WithPropertyNameExtension())
 			err = parser.parse()
 			if err != nil {
-				t.Errorf("Error parsing JSON ast: %v", err)
+				t.Errorf("Error parsing JSON Path: %v", err)
 				return
 			}
 

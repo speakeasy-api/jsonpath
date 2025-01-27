@@ -103,6 +103,7 @@ func (s innerSegment) Query(idx index, value *yaml.Node, root *yaml.Node) []*yam
 			// we just want to return the values
 			for i, child := range value.Content {
 				if i%2 == 1 {
+					idx.setPropertyKey(value.Content[i-1], value)
 					idx.setPropertyKey(child, value.Content[i-1])
 					result = append(result, child)
 				}
@@ -123,6 +124,7 @@ func (s innerSegment) Query(idx index, value *yaml.Node, root *yaml.Node) []*yam
 				val := value.Content[i+1]
 
 				if key.Value == s.dotName {
+					idx.setPropertyKey(key, value)
 					idx.setPropertyKey(val, key)
 					result = append(result, val)
 					break
@@ -156,8 +158,9 @@ func (s selector) Query(idx index, value *yaml.Node, root *yaml.Node) []*yaml.No
 				key = child.Value
 				continue
 			}
-			if key == s.name {
-				idx.setPropertyKey(child, value.Content[i])
+			if key == s.name && i%2 == 1 {
+				idx.setPropertyKey(value.Content[i], value.Content[i-1])
+				idx.setPropertyKey(value.Content[i-1], value)
 				return []*yaml.Node{child}
 			}
 		}
@@ -181,6 +184,7 @@ func (s selector) Query(idx index, value *yaml.Node, root *yaml.Node) []*yaml.No
 			var result []*yaml.Node
 			for i, child := range value.Content {
 				if i%2 == 1 {
+					idx.setPropertyKey(value.Content[i-1], value)
 					idx.setPropertyKey(child, value.Content[i-1])
 					result = append(result, child)
 				}
@@ -223,6 +227,7 @@ func (s selector) Query(idx index, value *yaml.Node, root *yaml.Node) []*yaml.No
 		switch value.Kind {
 		case yaml.MappingNode:
 			for i := 1; i < len(value.Content); i += 2 {
+				idx.setPropertyKey(value.Content[i-1], value)
 				idx.setPropertyKey(value.Content[i], value.Content[i-1])
 				if s.filter.Matches(idx, value.Content[i], root) {
 					result = append(result, value.Content[i])

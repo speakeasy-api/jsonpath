@@ -85,6 +85,54 @@ function Playground() {
     [],
   );
 
+  const onChangeOverlay = useCallback(
+    async (value: string | undefined, _: editor.IModelContentChangedEvent) => {
+      try {
+        setChangedLoading(true);
+        result.current = value || "";
+        const response = await ApplyOverlay(
+          original.current,
+          result.current,
+          true,
+        );
+        if (response.type == "success") {
+          setApplyOverlayMode("original+overlay");
+          changed.current = response.result || "";
+          setError("");
+          setOverlayMarkers([]);
+          const info = await GetInfo(changed.current, false);
+          tryHandlePageTitle(JSON.parse(info));
+        } else if (response.type == "incomplete") {
+          setApplyOverlayMode("jsonpathexplorer");
+          changed.current = response.result || "";
+          setError("");
+          setOverlayMarkers([]);
+        } else if (response.type == "error") {
+          setApplyOverlayMode("jsonpathexplorer");
+          setOverlayMarkers([
+            {
+              startLineNumber: response.line,
+              endLineNumber: response.line,
+              startColumn: response.col,
+              endColumn: response.col + 1000, // end of line
+              message: response.error,
+              severity: MarkerSeverity.Error, // Use MarkerSeverity from Monaco
+            },
+          ]);
+        }
+      } catch (e: unknown) {
+        if (e instanceof Error) {
+          setError(e.message);
+        }
+      } finally {
+        setChangedLoading(false);
+      }
+    },
+    [],
+  );
+
+  const onChangeOverlayDebounced = useDebounceCallback(onChangeOverlay, 500);
+
   const getShareUrl = useCallback(async () => {
     try {
       setShareUrlLoading(true);
@@ -146,20 +194,7 @@ function Playground() {
           original.current = decompressed.original;
           result.current = decompressed.result;
 
-          const changedNew = await ApplyOverlay(
-            original.current,
-            result.current,
-            false,
-          );
-          if (changedNew.type == "success") {
-            const info = await GetInfo(original.current, false);
-            const parsedInfo = JSON.parse(info);
-            tryHandlePageTitle(parsedInfo);
-            posthog.capture("overlay.speakeasy.com:load-shared", {
-              openapi: parsedInfo,
-            });
-            changed.current = changedNew.result;
-          }
+          await onChangeOverlay(result.current, {} as any);
         } catch (error: any) {
           console.error("invalid share url:", error.message);
         }
@@ -240,54 +275,6 @@ function Playground() {
   );
 
   const onChangeBDebounced = useDebounceCallback(onChangeB, 500);
-
-  const onChangeC = useCallback(
-    async (value: string | undefined, _: editor.IModelContentChangedEvent) => {
-      try {
-        setChangedLoading(true);
-        result.current = value || "";
-        const response = await ApplyOverlay(
-          original.current,
-          result.current,
-          true,
-        );
-        if (response.type == "success") {
-          setApplyOverlayMode("original+overlay");
-          changed.current = response.result || "";
-          setError("");
-          setOverlayMarkers([]);
-          const info = await GetInfo(changed.current, false);
-          tryHandlePageTitle(JSON.parse(info));
-        } else if (response.type == "incomplete") {
-          setApplyOverlayMode("jsonpathexplorer");
-          changed.current = response.result || "";
-          setError("");
-          setOverlayMarkers([]);
-        } else if (response.type == "error") {
-          setApplyOverlayMode("jsonpathexplorer");
-          setOverlayMarkers([
-            {
-              startLineNumber: response.line,
-              endLineNumber: response.line,
-              startColumn: response.col,
-              endColumn: response.col + 1000, // end of line
-              message: response.error,
-              severity: MarkerSeverity.Error, // Use MarkerSeverity from Monaco
-            },
-          ]);
-        }
-      } catch (e: unknown) {
-        if (e instanceof Error) {
-          setError(e.message);
-        }
-      } finally {
-        setChangedLoading(false);
-      }
-    },
-    [],
-  );
-
-  const onChangeCDebounced = useDebounceCallback(onChangeC, 500);
 
   const ref = useRef<ImperativePanelGroupHandle>(null);
 
@@ -460,7 +447,7 @@ function Playground() {
               <Editor
                 readonly={false}
                 value={result.current}
-                onChange={onChangeCDebounced}
+                onChange={onChangeOverlayDebounced}
                 loading={resultLoading}
                 markers={overlayMarkers}
                 title={"Overlay"}

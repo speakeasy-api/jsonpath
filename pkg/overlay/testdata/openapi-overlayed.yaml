@@ -106,38 +106,7 @@ paths:
   /drinks:
     x-speakeasy-note:
       "$ref": "./removeNote.yaml"
-  /drink/{name}: #TODO: this should be by product code and we should have search by name
-    get:
-      operationId: getDrink
-      summary: Get a drink.
-      description: Get a drink by name, if authenticated this will include stock levels and product codes otherwise it will only include public information.
-      tags:
-        - drinks
-      parameters:
-        - name: name
-          in: path
-          required: true
-          schema:
-            type: string
-        - x-parameter-extension: foo
-          name: test
-          description: Test parameter
-          in: query
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Test response
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Drink"
-                type: string
-          x-response-extension: foo
-        "5XX":
-          $ref: "#/components/responses/APIError"
-        default:
-          $ref: "#/components/responses/UnknownError"
+  /drink/{name}: {}
   /ingredients:
     get:
       operationId: listIngredients
