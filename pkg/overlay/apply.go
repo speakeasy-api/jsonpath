@@ -60,7 +60,6 @@ func removeNode(idx parentIndex, node *yaml.Node) {
 			switch parent.Kind {
 			case yaml.MappingNode:
 				if i%2 == 1 {
-					// we have to delete the key too
 					// if we select a value, we should delete the key too
 					parent.Content = append(parent.Content[:i-1], parent.Content[i+1:]...)
 				} else {
