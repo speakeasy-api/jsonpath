@@ -64,7 +64,7 @@ func removeNode(idx parentIndex, node *yaml.Node) {
 					parent.Content = append(parent.Content[:i-1], parent.Content[i+1:]...)
 				} else {
 					// if we select a key, we should delete the value
-					parent.Content = append(parent.Content[:i], parent.Content[i+1:]...)
+					parent.Content = append(parent.Content[:i], parent.Content[i+2:]...)
 				}
 				return
 			case yaml.SequenceNode:
