@@ -158,9 +158,9 @@ func (s selector) Query(idx index, value *yaml.Node, root *yaml.Node) []*yaml.No
 				key = child.Value
 				continue
 			}
-			if key == s.name {
-				idx.setPropertyKey(value.Content[i], value)
-				idx.setPropertyKey(child, value.Content[i])
+			if key == s.name && i%2 == 1 {
+				idx.setPropertyKey(value.Content[i], value.Content[i-1])
+				idx.setPropertyKey(value.Content[i-1], value)
 				return []*yaml.Node{child}
 			}
 		}

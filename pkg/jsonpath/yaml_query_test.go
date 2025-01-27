@@ -235,7 +235,7 @@ deeply:
 		},
 		{
 			name:  "Custom x-my-ignore extension filter",
-			input: "$.paths.*[?(@[\"x-my-ignore\"][?@ == \"match\"])].found",
+			input: "$.paths[?@[\"x-my-ignore\"][?@ == \"match\"]].found",
 			yaml: `
 openapi: 3.1.0
 info:
