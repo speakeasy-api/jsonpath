@@ -28,6 +28,7 @@ export interface EditorComponentProps {
     value: string | undefined,
     ev: editor.IModelContentChangedEvent,
   ) => void;
+  language: DocumentLanguage;
 }
 
 const minLoadingTime = 150;
@@ -216,7 +217,7 @@ export function Editor(props: EditorComponentProps) {
         originalModelPath={encodedTitle + "/original"}
         modifiedModelPath={encodedTitle + "/modified"}
         theme={"vscode-dark"}
-        language="yaml"
+        language={props.language}
         options={options}
       />
     </div>

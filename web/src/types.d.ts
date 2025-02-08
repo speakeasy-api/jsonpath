@@ -7,3 +7,5 @@ declare class Go {
   mem: DataView;
   run(instance: WebAssembly.Instance): Promise<void>;
 }
+
+declare type DocumentLanguage = "json" | "yaml";
