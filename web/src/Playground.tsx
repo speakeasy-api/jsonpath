@@ -25,6 +25,7 @@ import {
 } from "react-resizable-panels";
 import posthog from "posthog-js";
 import { useDebounceCallback, useMediaQuery } from "usehooks-ts";
+import { formatDocument, guessDocumentLanguage } from "./lib/utils";
 
 const Link = ({ children, href }: { children: ReactNode; href: string }) => (
   <a
@@ -59,6 +60,7 @@ function Playground() {
   const [ready, setReady] = useState(false);
 
   const original = useRef(petstore);
+  const originalLang = useRef<DocumentLanguage>("yaml");
   const changed = useRef("");
   const [changedLoading, setChangedLoading] = useState(false);
   const [applyOverlayMode, setApplyOverlayMode] = useState<
@@ -97,14 +99,14 @@ function Playground() {
         );
         if (response.type == "success") {
           setApplyOverlayMode("original+overlay");
-          changed.current = response.result || "";
+          changed.current = formatDocument(response.result);
           setError("");
           setOverlayMarkers([]);
           const info = await GetInfo(changed.current, false);
           tryHandlePageTitle(JSON.parse(info));
         } else if (response.type == "incomplete") {
           setApplyOverlayMode("jsonpathexplorer");
-          changed.current = response.result || "";
+          changed.current = formatDocument(response.result);
           setError("");
           setOverlayMarkers([]);
         } else if (response.type == "error") {
@@ -206,7 +208,7 @@ function Playground() {
             false,
           );
           if (changedNew.type == "success") {
-            changed.current = changedNew.result;
+            changed.current = formatDocument(changedNew.result);
           }
         } catch (e: unknown) {
           if (e instanceof Error) {
@@ -226,6 +228,7 @@ function Playground() {
       try {
         setResultLoading(true);
         original.current = value || "";
+        originalLang.current = guessDocumentLanguage(original.current);
         const res = await CalculateOverlay(
           value || "",
           changed.current,
@@ -419,6 +422,7 @@ function Playground() {
                 title="Original"
                 index={0}
                 maxOnClick={maxLayout}
+                language={originalLang.current}
               />
             </div>
           </Panel>
@@ -438,6 +442,7 @@ function Playground() {
                 title={appliedPanelTitle}
                 index={1}
                 maxOnClick={maxLayout}
+                language={originalLang.current}
               />
             </div>
           </Panel>
@@ -453,6 +458,7 @@ function Playground() {
                 title={"Overlay"}
                 index={2}
                 maxOnClick={maxLayout}
+                language="yaml"
               />
             </div>
           </Panel>
