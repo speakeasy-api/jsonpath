@@ -25,7 +25,11 @@ import {
 } from "react-resizable-panels";
 import posthog from "posthog-js";
 import { useDebounceCallback, useMediaQuery } from "usehooks-ts";
-import { formatDocument, guessDocumentLanguage } from "./lib/utils";
+import {
+  arraysEqual,
+  formatDocument,
+  guessDocumentLanguage,
+} from "./lib/utils";
 
 const Link = ({ children, href }: { children: ReactNode; href: string }) => (
   <a
@@ -283,14 +287,25 @@ function Playground() {
 
   const maxLayout = useCallback((index: number) => {
     const panelGroup = ref.current;
-    const desiredWidths = [10, 10, 10];
+    if (!panelGroup) return;
+
+    const currentLayout = panelGroup?.getLayout();
+
+    if (!arraysEqual(currentLayout, defaultLayout)) {
+      panelGroup.setLayout(defaultLayout);
+      return;
+    }
+
+    const baseWidth = 10;
+    const maxedWidth = 80;
+    const desiredWidths = Array(3).fill(baseWidth);
+
     if (index < desiredWidths.length && index >= 0) {
-      desiredWidths[index] = 80;
+      desiredWidths[index] = maxedWidth;
     }
-    if (panelGroup) {
-      // Reset each Panel to 50% of the group's width
-      panelGroup.setLayout(desiredWidths);
-    }
+
+    // Reset each Panel to 50% of the group's width
+    panelGroup.setLayout(desiredWidths);
   }, []);
 
   if (!ready) {

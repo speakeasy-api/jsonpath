@@ -22,3 +22,19 @@ export function formatDocument(doc: string, indentWidth: number = 2): string {
 
   return doc;
 }
+
+export function arraysEqual<T>(a: T[], b: T[]): boolean {
+  // Check if the arrays have the same length
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  // Compare each element in the arrays
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
