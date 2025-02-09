@@ -15,7 +15,6 @@ import { blankOverlay, petstore } from "./defaults";
 import speakeasyWhiteLogo from "./assets/speakeasy-white.svg";
 import openapiLogo from "./assets/openapi.svg";
 import { compress, decompress } from "@/compress";
-import { CopyButton } from "@/components/CopyButton";
 import { Button } from "@/components/ui/button";
 import {
   ImperativePanelGroupHandle,
@@ -25,7 +24,13 @@ import {
 } from "react-resizable-panels";
 import posthog from "posthog-js";
 import { useDebounceCallback, useMediaQuery } from "usehooks-ts";
-import { formatDocument, guessDocumentLanguage } from "./lib/utils";
+import {
+  arraysEqual,
+  formatDocument,
+  guessDocumentLanguage,
+} from "./lib/utils";
+import ShareDialog, { ShareDialogHandle } from "./components/ShareDialog";
+import { Loader2Icon, ShareIcon } from "lucide-react";
 
 const Link = ({ children, href }: { children: ReactNode; href: string }) => (
   <a
@@ -73,7 +78,6 @@ function Playground() {
   const result = useRef(blankOverlay);
   const [resultLoading, setResultLoading] = useState(false);
   const [error, setError] = useState("");
-  const [shareUrl, setShareUrl] = useState("");
   const [shareUrlLoading, setShareUrlLoading] = useState(false);
   const [overlayMarkers, setOverlayMarkers] = useState<editor.IMarkerData[]>(
     [],
@@ -135,7 +139,12 @@ function Playground() {
 
   const onChangeOverlayDebounced = useDebounceCallback(onChangeOverlay, 500);
 
+  const shareDialogRef = useRef<ShareDialogHandle>(null);
+  const lastSharedStart = useRef<string>("");
+
   const getShareUrl = useCallback(async () => {
+    if (!shareDialogRef.current) return;
+
     try {
       setShareUrlLoading(true);
       const info = await GetInfo(original.current, false);
@@ -144,14 +153,19 @@ function Playground() {
         original: original.current,
         info: info,
       });
-      const blob = await compress(start);
+
+      const alreadySharedThis = lastSharedStart.current === start;
+      if (alreadySharedThis) {
+        shareDialogRef.current.setOpen(true);
+        return;
+      }
 
       const response = await fetch("/api/share", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: blob,
+        body: await compress(start),
       });
 
       if (response.ok) {
@@ -161,7 +175,10 @@ function Playground() {
         currentUrl.hash = "";
         currentUrl.searchParams.set("s", base64Data);
 
-        setShareUrl(currentUrl.toString());
+        lastSharedStart.current = start;
+        shareDialogRef.current.setUrl(currentUrl.toString());
+        shareDialogRef.current.setOpen(true);
+
         history.pushState(null, "", currentUrl.toString());
         posthog.capture("overlay.speakeasy.com:share", {
           openapi: JSON.parse(info),
@@ -283,14 +300,25 @@ function Playground() {
 
   const maxLayout = useCallback((index: number) => {
     const panelGroup = ref.current;
-    const desiredWidths = [10, 10, 10];
+    if (!panelGroup) return;
+
+    const currentLayout = panelGroup?.getLayout();
+
+    if (!arraysEqual(currentLayout, defaultLayout)) {
+      panelGroup.setLayout(defaultLayout);
+      return;
+    }
+
+    const baseWidth = 10;
+    const maxedWidth = 80;
+    const desiredWidths = Array(3).fill(baseWidth);
+
     if (index < desiredWidths.length && index >= 0) {
-      desiredWidths[index] = 80;
+      desiredWidths[index] = maxedWidth;
     }
-    if (panelGroup) {
-      // Reset each Panel to 50% of the group's width
-      panelGroup.setLayout(desiredWidths);
-    }
+
+    // Reset each Panel to 50% of the group's width
+    panelGroup.setLayout(desiredWidths);
   }, []);
 
   if (!ready) {
@@ -312,7 +340,7 @@ function Playground() {
           For proper user experience, please use a desktop device
         </Alert>
       ) : null}
-      <div style={{ paddingBottom: "1rem", width: "100vw" }}>
+      <div style={{ width: "100vw" }}>
         <div className="border-b border-muted p-4 md:p-6 text-left">
           <div className="flex gap-2">
             <div className="flex flex-1">
@@ -341,7 +369,7 @@ function Playground() {
               </div>
             </div>
             <div className="flex flex-1 flex-row-reverse">
-              <div className="flex flex-col justify-between">
+              <div className="flex flex-col gap-4 justify-between">
                 <div className="flex gap-x-2">
                   <span>
                     <Link href="https://www.speakeasy.com?utm_source=overlay.speakeasy.com">
@@ -365,9 +393,9 @@ function Playground() {
                     </Link>
                   </span>
                 </div>
-                <div className="flex gap-x-2 justify-evenly ">
+                <div className="flex gap-x-2 justify-end">
                   <Button
-                    className="border-b border-transparent transition-all duration-200 hover:border-current"
+                    className="border-b border-transparent hover:border-current"
                     style={{
                       color: "#FBE331",
                       backgroundColor: "#1E1E1E",
@@ -375,11 +403,17 @@ function Playground() {
                     onClick={getShareUrl}
                     disabled={shareUrlLoading}
                   >
+                    {shareUrlLoading ? (
+                      <Loader2Icon
+                        className="animate-spin"
+                        style={{ height: "75%" }}
+                      />
+                    ) : (
+                      <ShareIcon style={{ height: "75%" }} />
+                    )}
                     Share
                   </Button>
-                  <div className="flex items-center gap-x-2 grow">
-                    {shareUrl ? <CopyButton value={shareUrl} /> : null}
-                  </div>
+                  <ShareDialog ref={shareDialogRef} />
                 </div>
               </div>
             </div>
