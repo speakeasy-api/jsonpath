@@ -34,7 +34,7 @@ export function CopyButton({
   React.useEffect(() => {
     setTimeout(() => {
       setHasCopied(false);
-    }, 2000);
+    }, 5000);
   }, [hasCopied]);
 
   return (
@@ -49,9 +49,13 @@ export function CopyButton({
       style={{ background: "transparent" }}
       {...props}
     >
-      <Input readOnly value={value} style={{ width: "100%" }} />
-      <span className="flex items-center z-10 h-6 w-6 text-zinc-50 hover:bg-zinc-700 hover:text-zinc-50 [&_svg]:h-3 [&_svg]:w-3">
-        <span className="sr-only">Copy</span>
+      <Input
+        readOnly
+        value={value}
+        className="w-full font-mono font-semibold text-sm bg-zinc-900"
+      />
+      <span className=" h-full aspect-square rounded-md flex items-center justify-center  text-zinc-50 bg-zinc-900 hover:bg-zinc-700 hover:text-zinc-50 [&_svg]:h-3 [&_svg]:w-3">
+        <span className="sr-only aspect-square">Copy</span>
         {hasCopied ? <CheckIcon /> : <ClipboardIcon />}
       </span>
     </Button>
