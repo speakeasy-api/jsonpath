@@ -181,14 +181,7 @@ type IncompleteOverlayErrorMessage struct {
 }
 
 func applyOverlayJSONPathIncomplete(result []*yaml.Node, node *yaml.Node) (string, error) {
-	var data interface{}
-	if len(result) == 1 {
-		data = result[0]
-	} else {
-		data = result
-	}
-
-	yamlResult, err := yaml.Marshal(data)
+	yamlResult, err := yaml.Marshal(&result)
 	if err != nil {
 		return "", err
 	}

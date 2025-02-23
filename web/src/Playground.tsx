@@ -31,6 +31,7 @@ import {
 } from "./lib/utils";
 import ShareDialog, { ShareDialogHandle } from "./components/ShareDialog";
 import { Loader2Icon, ShareIcon } from "lucide-react";
+import { parse as yamlParse } from "yaml";
 
 const Link = ({ children, href }: { children: ReactNode; href: string }) => (
   <a
@@ -110,7 +111,16 @@ function Playground() {
           tryHandlePageTitle(JSON.parse(info));
         } else if (response.type == "incomplete") {
           setApplyOverlayMode("jsonpathexplorer");
-          changed.current = formatDocument(response.result);
+
+          if (originalLang.current == "json") {
+            // !TODO: this is a hack to get around the fact
+            //  that the json parser only returns yaml.
+            const obj = yamlParse(response.result);
+            changed.current = JSON.stringify(obj, null, 2);
+          } else {
+            changed.current = response.result;
+          }
+
           setError("");
           setOverlayMarkers([]);
         } else if (response.type == "error") {
