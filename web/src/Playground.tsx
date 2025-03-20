@@ -31,7 +31,6 @@ import {
   guessDocumentLanguage,
 } from "./lib/utils";
 import ShareDialog, { ShareDialogHandle } from "./components/ShareDialog";
-import { Loader2Icon, ShareIcon } from "lucide-react";
 import { parse as yamlParse } from "yaml";
 
 const Link = ({ children, href }: { children: ReactNode; href: string }) => (
