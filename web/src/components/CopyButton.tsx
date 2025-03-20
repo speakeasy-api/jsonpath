@@ -41,7 +41,10 @@ export function CopyButton({
     <Button
       size="icon"
       variant={variant}
-      className={cn("flex grow relative border-none", className)}
+      className={cn(
+        "flex grow relative border-none bg-foreground/5 hover:bg-foreground/10 text-foreground/80   cursor-pointer select-none flex-row items-center gap-1.5 whitespace-nowrap rounded-md border px-2.5 py-2 text-sm tracking-tight",
+        className,
+      )}
       onClick={() => {
         copyToClipboardWithMeta(value);
         setHasCopied(true);

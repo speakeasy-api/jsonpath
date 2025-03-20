@@ -824,3 +824,10 @@ info:
 actions: 
   - target: $.info.description
     update: Hello World`;
+
+export const emptyOverlay = `overlay: 1.0.0
+x-speakeasy-jsonpath: rfc9535
+info:
+    title: example overlay
+    version: 0.0.0
+actions: []`;

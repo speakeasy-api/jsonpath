@@ -43,17 +43,13 @@ func (o *Overlay) Validate() error {
 		}
 	}
 
-	if len(o.Actions) == 0 {
-		errs = append(errs, fmt.Errorf("overlay must define at least one action"))
-	} else {
-		for i, action := range o.Actions {
-			if action.Target == "" {
-				errs = append(errs, fmt.Errorf("overlay action at index %d target must be defined", i))
-			}
+	for i, action := range o.Actions {
+		if action.Target == "" {
+			errs = append(errs, fmt.Errorf("overlay action at index %d target must be defined", i))
+		}
 
-			if action.Remove && !action.Update.IsZero() {
-				errs = append(errs, fmt.Errorf("overlay action at index %d should not both set remove and define update", i))
-			}
+		if action.Remove && !action.Update.IsZero() {
+			errs = append(errs, fmt.Errorf("overlay action at index %d should not both set remove and define update", i))
 		}
 	}
 

@@ -11,11 +11,10 @@ import { Editor } from "./components/Editor";
 import { editor, MarkerSeverity } from "monaco-editor";
 import { ApplyOverlay, CalculateOverlay, GetInfo } from "./bridge";
 import { Alert } from "@speakeasy-api/moonshine";
-import { blankOverlay, petstore } from "./defaults";
+import { blankOverlay, emptyOverlay, petstore } from "./defaults";
 import speakeasyWhiteLogo from "./assets/speakeasy-white.svg";
 import openapiLogo from "./assets/openapi.svg";
 import { compress, decompress } from "@/compress";
-import { Button } from "@/components/ui/button";
 import {
   ImperativePanelGroupHandle,
   Panel,
@@ -24,6 +23,8 @@ import {
 } from "react-resizable-panels";
 import posthog from "posthog-js";
 import { useDebounceCallback, useMediaQuery } from "usehooks-ts";
+import FileUpload from "@/components/FileUpload";
+import ShareButton from "@/components/ShareButton";
 import {
   arraysEqual,
   formatDocument,
@@ -66,6 +67,7 @@ function Playground() {
   const [ready, setReady] = useState(false);
 
   const original = useRef(petstore);
+  const implicitShare = useRef(false);
   const originalLang = useRef<DocumentLanguage>("yaml");
   const changed = useRef("");
   const [changedLoading, setChangedLoading] = useState(false);
@@ -185,9 +187,11 @@ function Playground() {
         currentUrl.hash = "";
         currentUrl.searchParams.set("s", base64Data);
 
-        lastSharedStart.current = start;
-        shareDialogRef.current.setUrl(currentUrl.toString());
-        shareDialogRef.current.setOpen(true);
+        if (!implicitShare.current) {
+          lastSharedStart.current = start;
+          shareDialogRef.current.setUrl(currentUrl.toString());
+          shareDialogRef.current.setOpen(true);
+        }
 
         history.pushState(null, "", currentUrl.toString());
         posthog.capture("overlay.speakeasy.com:share", {
@@ -331,6 +335,25 @@ function Playground() {
     panelGroup.setLayout(desiredWidths);
   }, []);
 
+  const onFileUpload = useCallback(
+    async (content: string) => {
+      setResultLoading(true);
+      implicitShare.current = true;
+      original.current = content;
+      changed.current = content;
+      result.current = emptyOverlay;
+      await getShareUrl();
+      setResultLoading(false);
+      setOverlayMarkers([]);
+    },
+    [original, changed, result],
+  );
+
+  const clickShareButton = useCallback(async () => {
+    implicitShare.current = false;
+    await getShareUrl();
+  }, [getShareUrl, implicitShare]);
+
   if (!ready) {
     return "";
   }
@@ -403,26 +426,12 @@ function Playground() {
                     </Link>
                   </span>
                 </div>
-                <div className="flex gap-x-2 justify-end">
-                  <Button
-                    className="border-b border-transparent hover:border-current"
-                    style={{
-                      color: "#FBE331",
-                      backgroundColor: "#1E1E1E",
-                    }}
-                    onClick={getShareUrl}
-                    disabled={shareUrlLoading}
-                  >
-                    {shareUrlLoading ? (
-                      <Loader2Icon
-                        className="animate-spin"
-                        style={{ height: "75%" }}
-                      />
-                    ) : (
-                      <ShareIcon style={{ height: "75%" }} />
-                    )}
-                    Share
-                  </Button>
+                <div className="flex gap-x-2 justify-evenly ">
+                  <FileUpload onFileUpload={onFileUpload} />
+                  <ShareButton
+                    onClick={clickShareButton}
+                    loading={shareUrlLoading}
+                  />
                   <ShareDialog ref={shareDialogRef} />
                 </div>
               </div>
