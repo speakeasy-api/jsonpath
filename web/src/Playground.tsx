@@ -425,7 +425,7 @@ function Playground() {
                     </Link>
                   </span>
                 </div>
-                <div className="flex gap-x-2 justify-evenly ">
+                <div className="flex gap-x-2 justify-end">
                   <FileUpload onFileUpload={onFileUpload} />
                   <ShareButton
                     onClick={clickShareButton}
