@@ -398,9 +398,6 @@ function Playground() {
                   </Link>
                   .
                 </p>
-                <p className="text-sm text-muted-foreground pt-2">
-                  (Make your manual edits here)
-                </p>
               </div>
             </div>
             <div className="flex flex-1 flex-row-reverse">
@@ -499,6 +496,9 @@ function Playground() {
                 maxOnClick={maxLayout}
                 language={originalLang.current}
               />
+              <p className="text-sm text-muted-foreground pt-2">
+                (Make your manual edits here)
+              </p>
             </div>
           </Panel>
           <PanelResizeHandle />
