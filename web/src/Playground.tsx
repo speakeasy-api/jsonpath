@@ -73,7 +73,7 @@ function Playground() {
   const [applyOverlayMode, setApplyOverlayMode] = useState<
     "original+overlay" | "jsonpathexplorer"
   >("original+overlay");
-  let appliedPanelTitle = "Original + Overlay";
+  let appliedPanelTitle = "Original + Edits";
   if (applyOverlayMode == "jsonpathexplorer") {
     appliedPanelTitle = "JSONPath Explorer";
   }
@@ -398,6 +398,9 @@ function Playground() {
                   </Link>
                   .
                 </p>
+                <p className="text-sm text-muted-foreground pt-2">
+                  (Upload an OpenAPI spec and track edits as an overlay or write an overlay directly)
+                </p>
               </div>
             </div>
             <div className="flex flex-1 flex-row-reverse">
@@ -496,9 +499,6 @@ function Playground() {
                 maxOnClick={maxLayout}
                 language={originalLang.current}
               />
-              <p className="text-sm text-muted-foreground pt-2">
-                (Make your manual edits here)
-              </p>
             </div>
           </Panel>
           <PanelResizeHandle />
