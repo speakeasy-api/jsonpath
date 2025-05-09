@@ -92,7 +92,7 @@ func applyUpdateAction(root *yaml.Node, action Action) error {
 	nodes := p.Query(root)
 
 	for _, node := range nodes {
-		if err := updateNode(node, action.Update); err != nil {
+		if err := updateNode(node, &action.Update); err != nil {
 			return err
 		}
 	}
@@ -100,14 +100,14 @@ func applyUpdateAction(root *yaml.Node, action Action) error {
 	return nil
 }
 
-func updateNode(node *yaml.Node, updateNode yaml.Node) error {
+func updateNode(node *yaml.Node, updateNode *yaml.Node) error {
 	mergeNode(node, updateNode)
 	return nil
 }
 
-func mergeNode(node *yaml.Node, merge yaml.Node) {
+func mergeNode(node *yaml.Node, merge *yaml.Node) {
 	if node.Kind != merge.Kind {
-		*node = merge
+		*node = *clone(merge)
 		return
 	}
 	switch node.Kind {
@@ -122,7 +122,7 @@ func mergeNode(node *yaml.Node, merge yaml.Node) {
 
 // mergeMappingNode will perform a shallow merge of the merge node into the main
 // node.
-func mergeMappingNode(node *yaml.Node, merge yaml.Node) {
+func mergeMappingNode(node *yaml.Node, merge *yaml.Node) {
 NextKey:
 	for i := 0; i < len(merge.Content); i += 2 {
 		mergeKey := merge.Content[i].Value
@@ -131,16 +131,39 @@ NextKey:
 		for j := 0; j < len(node.Content); j += 2 {
 			nodeKey := node.Content[j].Value
 			if nodeKey == mergeKey {
-				mergeNode(node.Content[j+1], *mergeValue)
+				mergeNode(node.Content[j+1], mergeValue)
 				continue NextKey
 			}
 		}
 
-		node.Content = append(node.Content, merge.Content[i], mergeValue)
+		node.Content = append(node.Content, merge.Content[i], clone(mergeValue))
 	}
 }
 
 // mergeSequenceNode will append the merge node's content to the original node.
-func mergeSequenceNode(node *yaml.Node, merge yaml.Node) {
-	node.Content = append(node.Content, merge.Content...)
+func mergeSequenceNode(node *yaml.Node, merge *yaml.Node) {
+	node.Content = append(node.Content, clone(merge).Content...)
+}
+
+func clone(node *yaml.Node) *yaml.Node {
+	newNode := &yaml.Node{
+		Kind:        node.Kind,
+		Style:       node.Style,
+		Tag:         node.Tag,
+		Value:       node.Value,
+		Anchor:      node.Anchor,
+		HeadComment: node.HeadComment,
+		LineComment: node.LineComment,
+		FootComment: node.FootComment,
+	}
+	if node.Alias != nil {
+		newNode.Alias = clone(node.Alias)
+	}
+	if node.Content != nil {
+		newNode.Content = make([]*yaml.Node, len(node.Content))
+		for i, child := range node.Content {
+			newNode.Content[i] = clone(child)
+		}
+	}
+	return newNode
 }
