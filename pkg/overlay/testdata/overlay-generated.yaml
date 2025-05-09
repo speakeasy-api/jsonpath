@@ -12,6 +12,12 @@ actions:
       servers:
         - url: http://localhost:35123
           description: The default server.
+  - target: $["paths"]["/anything/selectGlobalServer"]["get"]
+    update:
+      x-drop: true
+  - target: $["paths"]["/authenticate"]["post"]
+    update:
+      x-drop: false
   - target: $["paths"]["/drinks"]
     update:
       x-speakeasy-note:
@@ -20,3 +26,12 @@ actions:
     remove: true
   - target: $["paths"]["/drink/{name}"]["get"]
     remove: true
+  - target: $["paths"]["/ingredients"]["get"]
+    update:
+      x-drop: true
+  - target: $["paths"]["/order"]["post"]
+    update:
+      x-drop: true
+  - target: $["paths"]["/webhooks/subscribe"]["post"]
+    update:
+      x-drop: true
