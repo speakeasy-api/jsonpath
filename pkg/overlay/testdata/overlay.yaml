@@ -42,4 +42,11 @@ actions:
       servers:
         - url: http://localhost:35123
           description: The default server.
-x-top-level-extension: true
+  - target: $.paths.*[?@.operationId]
+    description: "add x-drop: true to all paths"
+    update:
+      x-drop: true
+  - target: $.paths.*[?length(@.tags[?(@ == "dont-add-x-drop-false")]) > 0]
+    description: "add x-drop: false to any operation which has the dont-add-x-drop-false tag"
+    update:
+      x-drop: false

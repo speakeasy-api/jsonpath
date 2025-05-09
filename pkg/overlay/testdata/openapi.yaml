@@ -71,6 +71,7 @@ paths:
       summary: Authenticate with the API by providing a username and password.
       security: []
       tags:
+        - dont-add-x-drop-false
         - authentication
       requestBody:
         required: true

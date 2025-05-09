@@ -69,12 +69,14 @@ paths:
             X-Optional-Header:
               schema:
                 type: string
+      x-drop: true
   /authenticate:
     post:
       operationId: authenticate
       summary: Authenticate with the API by providing a username and password.
       security: []
       tags:
+        - dont-add-x-drop-false
         - authentication
       requestBody:
         required: true
@@ -103,6 +105,7 @@ paths:
           $ref: "#/components/responses/APIError"
         default:
           $ref: "#/components/responses/UnknownError"
+      x-drop: false
   /drinks:
     x-speakeasy-note:
       "$ref": "./removeNote.yaml"
@@ -138,6 +141,7 @@ paths:
           $ref: "#/components/responses/APIError"
         default:
           $ref: "#/components/responses/UnknownError"
+      x-drop: true
   /order:
     post:
       operationId: createOrder
@@ -195,6 +199,7 @@ paths:
                   $ref: "#/components/responses/APIError"
                 default:
                   $ref: "#/components/responses/UnknownError"
+      x-drop: true
   /webhooks/subscribe:
     post:
       operationId: subscribeToWebhooks
@@ -224,6 +229,7 @@ paths:
           $ref: "#/components/responses/APIError"
         default:
           $ref: "#/components/responses/UnknownError"
+      x-drop: true
 webhooks:
   stockUpdate:
     post:
