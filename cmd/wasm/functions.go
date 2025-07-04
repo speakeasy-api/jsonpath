@@ -9,7 +9,7 @@ import (
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/token"
 	"github.com/speakeasy-api/jsonpath/pkg/overlay"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 	"reflect"
 	"syscall/js"
 )
