@@ -2,7 +2,7 @@ package overlay
 
 import (
 	"bytes"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 // Extensible provides a place for extensions to be added to components of the

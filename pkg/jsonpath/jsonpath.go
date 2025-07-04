@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/token"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 func NewPath(input string, opts ...config.Option) (*JSONPath, error) {
