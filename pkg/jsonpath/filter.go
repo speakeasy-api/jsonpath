@@ -79,13 +79,13 @@ func (q filterQuery) ToString() string {
 	return ""
 }
 
-// functionArgument function-argument   = literal /
+// functionArgument function-argument   = literal-value /
 //
 //	filter-query / ; (includes singular-query)
 //	logical-expr /
 //	function-expr
 type functionArgument struct {
-	literal      *literal
+	literalValue *literal
 	filterQuery  *filterQuery
 	logicalExpr  *logicalOrExpr
 	functionExpr *functionExpr
@@ -105,8 +105,8 @@ type resolvedArgument struct {
 }
 
 func (a functionArgument) Eval(idx index, node *yaml.Node, root *yaml.Node) resolvedArgument {
-	if a.literal != nil {
-		return resolvedArgument{kind: functionArgTypeLiteral, literal: a.literal}
+	if a.literalValue != nil {
+		return resolvedArgument{kind: functionArgTypeLiteral, literal: a.literalValue}
 	} else if a.filterQuery != nil {
 		result := a.filterQuery.Query(idx, node, root)
 		lits := make([]*literal, len(result))
@@ -131,8 +131,8 @@ func (a functionArgument) Eval(idx index, node *yaml.Node, root *yaml.Node) reso
 
 func (a functionArgument) ToString() string {
 	builder := strings.Builder{}
-	if a.literal != nil {
-		builder.WriteString(a.literal.ToString())
+	if a.literalValue != nil {
+		builder.WriteString(a.literalValue.ToString())
 	} else if a.filterQuery != nil {
 		builder.WriteString(a.filterQuery.ToString())
 	} else if a.logicalExpr != nil {
@@ -242,7 +242,7 @@ func (e basicExpr) ToString() string {
 	return ""
 }
 
-// literal literal = number /
+// literal literal-value = number /
 // . string-literal /
 // . true / false / null
 type literal struct {
@@ -353,18 +353,18 @@ func (q singularQuery) ToString() string {
 
 // comparable
 //
-//	comparable = literal /
+//	comparable = literal-value /
 //	singular-query / ; singular query value
 //	function-expr    ; ValueType
 type comparable struct {
-	literal       *literal
+	literalValue  *literal
 	singularQuery *singularQuery
 	functionExpr  *functionExpr
 }
 
 func (c comparable) ToString() string {
-	if c.literal != nil {
-		return c.literal.ToString()
+	if c.literalValue != nil {
+		return c.literalValue.ToString()
 	} else if c.singularQuery != nil {
 		return c.singularQuery.ToString()
 	} else if c.functionExpr != nil {
@@ -376,9 +376,9 @@ func (c comparable) ToString() string {
 // comparisonExpr represents a comparison expression
 //
 //	comparison-expr     = comparable S comparison-op S comparable
-//	literal             = number / string-literal /
+//	literal-value       = number / string-literal /
 //	                      true / false / null
-//	comparable          = literal /
+//	comparable          = literal-value /
 //	                      singular-query / ; singular query value
 //	                      function-expr    ; ValueType
 //	comparison-op       = "==" / "!=" /

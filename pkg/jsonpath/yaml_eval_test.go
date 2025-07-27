@@ -212,7 +212,7 @@ func TestComparableEvaluate(t *testing.T) {
 	}{
 		{
 			name:       "literal",
-			comparable: comparable{literal: &literal{integer: intPtr(10)}},
+			comparable: comparable{literalValue: &literal{integer: intPtr(10)}},
 			node:       yamlNodeFromString("foo"),
 			root:       yamlNodeFromString("foo"),
 			expected:   literal{integer: intPtr(10)},

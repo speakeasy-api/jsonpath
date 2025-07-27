@@ -461,7 +461,7 @@ func (p *JSONPath) parseComparable() (*comparable, error) {
 	//	singular-query / ; singular query value
 	//	function-expr    ; ValueType
 	if literal, err := p.parseLiteral(); err == nil {
-		return &comparable{literal: literal}, nil
+		return &comparable{literalValue: literal}, nil
 	}
 	if funcExpr, err := p.parseFunctionExpr(); err == nil {
 		if funcExpr.funcType == functionTypeMatch {
@@ -574,7 +574,7 @@ func (p *JSONPath) parseFunctionExpr() (*functionExpr, error) {
 		if err != nil {
 			return nil, err
 		}
-		if arg.literal != nil && arg.literal.node == nil {
+		if arg.literalValue != nil && arg.literalValue.node == nil {
 			return nil, p.parseFailure(&p.tokens[p.current], "count function only supports containers")
 		}
 		args = append(args, arg)
@@ -637,7 +637,7 @@ func (p *JSONPath) parseFunctionArgument(single bool) (*functionArgument, error)
 	//	function-expr
 
 	if lit, err := p.parseLiteral(); err == nil {
-		return &functionArgument{literal: lit}, nil
+		return &functionArgument{literalValue: lit}, nil
 	}
 	switch p.tokens[p.current].Token {
 	case token.CURRENT:
