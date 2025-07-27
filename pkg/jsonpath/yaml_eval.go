@@ -2,11 +2,12 @@ package jsonpath
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"reflect"
 	"regexp"
 	"strconv"
 	"unicode/utf8"
+
+	"gopkg.in/yaml.v3"
 )
 
 func (l literal) Equals(value literal) bool {
@@ -105,8 +106,8 @@ func (l literal) LessThanOrEqual(value literal) bool {
 }
 
 func (c comparable) Evaluate(idx index, node *yaml.Node, root *yaml.Node) literal {
-	if c.literal != nil {
-		return *c.literal
+	if c.literalValue != nil {
+		return *c.literalValue
 	}
 	if c.singularQuery != nil {
 		return c.singularQuery.Evaluate(idx, node, root)

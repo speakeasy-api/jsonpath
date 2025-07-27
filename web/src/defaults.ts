@@ -73,7 +73,7 @@ paths:
             tags:
                 - pet
             summary: Update an existing pet
-            description: Update an existing pet by Id
+            description: Update an existing pet by ID
             operationId: updatePet
             responses:
                 '200':

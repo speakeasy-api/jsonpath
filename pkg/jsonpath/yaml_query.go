@@ -68,7 +68,7 @@ func (s segment) Query(idx index, value *yaml.Node, root *yaml.Node) []*yaml.Nod
 		// make children unique by pointer value
 		result = unique(result)
 		return result
-	case segmentKindProperyName:
+	case segmentKindPropertyName:
 		found := idx.getPropertyKey(value)
 		if found != nil {
 			return []*yaml.Node{found}

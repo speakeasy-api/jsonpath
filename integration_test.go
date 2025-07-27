@@ -2,14 +2,15 @@ package jsonpath_test
 
 import (
 	"encoding/json"
-	"github.com/pmezard/go-difflib/difflib"
-	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
-	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
 	"os"
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/pmezard/go-difflib/difflib"
+	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 )
 
 type FullTestSuite struct {

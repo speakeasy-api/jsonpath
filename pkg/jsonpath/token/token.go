@@ -2,9 +2,10 @@ package token
 
 import (
 	"fmt"
-	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
 	"strconv"
 	"strings"
+
+	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
 )
 
 // *****************************************************************************

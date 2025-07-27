@@ -3,10 +3,11 @@ package jsonpath
 import (
 	"errors"
 	"fmt"
-	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
-	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/token"
 	"strconv"
 	"strings"
+
+	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
+	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/token"
 )
 
 const MaxSafeFloat int64 = 9007199254740991
@@ -107,7 +108,7 @@ func (p *JSONPath) parseSegment() (*segment, error) {
 		return &segment{kind: segmentKindChild, child: child}, nil
 	} else if p.config.PropertyNameEnabled() && currentToken.Token == token.PROPERTY_NAME {
 		p.current++
-		return &segment{kind: segmentKindProperyName}, nil
+		return &segment{kind: segmentKindPropertyName}, nil
 	}
 	return nil, p.parseFailure(&currentToken, "unexpected token when parsing segment")
 }
@@ -460,7 +461,7 @@ func (p *JSONPath) parseComparable() (*comparable, error) {
 	//	singular-query / ; singular query value
 	//	function-expr    ; ValueType
 	if literal, err := p.parseLiteral(); err == nil {
-		return &comparable{literal: literal}, nil
+		return &comparable{literalValue: literal}, nil
 	}
 	if funcExpr, err := p.parseFunctionExpr(); err == nil {
 		if funcExpr.funcType == functionTypeMatch {
@@ -573,7 +574,7 @@ func (p *JSONPath) parseFunctionExpr() (*functionExpr, error) {
 		if err != nil {
 			return nil, err
 		}
-		if arg.literal != nil && arg.literal.node == nil {
+		if arg.literalValue != nil && arg.literalValue.node == nil {
 			return nil, p.parseFailure(&p.tokens[p.current], "count function only supports containers")
 		}
 		args = append(args, arg)
@@ -636,7 +637,7 @@ func (p *JSONPath) parseFunctionArgument(single bool) (*functionArgument, error)
 	//	function-expr
 
 	if lit, err := p.parseLiteral(); err == nil {
-		return &functionArgument{literal: lit}, nil
+		return &functionArgument{literalValue: lit}, nil
 	}
 	switch p.tokens[p.current].Token {
 	case token.CURRENT:

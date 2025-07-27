@@ -5,13 +5,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"syscall/js"
+
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/token"
 	"github.com/speakeasy-api/jsonpath/pkg/overlay"
 	"gopkg.in/yaml.v3"
-	"reflect"
-	"syscall/js"
 )
 
 func CalculateOverlay(originalYAML, targetYAML, existingOverlay string) (string, error) {

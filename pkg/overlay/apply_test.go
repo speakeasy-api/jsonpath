@@ -2,11 +2,12 @@ package overlay_test
 
 import (
 	"bytes"
+	"os"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
-	"os"
-	"testing"
 )
 
 // NodeMatchesFile is a test that marshals the YAML file from the given node,
