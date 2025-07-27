@@ -9,9 +9,9 @@ import (
 type segmentKind int
 
 const (
-	segmentKindChild       segmentKind = iota // .
-	segmentKindDescendant                     // ..
-	segmentKindProperyName                    // ~ (extension only)
+	segmentKindChild        segmentKind = iota // .
+	segmentKindDescendant                      // ..
+	segmentKindPropertyName                    // ~ (extension only)
 )
 
 type segment struct {
@@ -38,7 +38,7 @@ func (s segment) ToString() string {
 		}
 	case segmentKindDescendant:
 		return ".." + s.descendant.ToString()
-	case segmentKindProperyName:
+	case segmentKindPropertyName:
 		return "~"
 	}
 	panic("unknown segment kind")

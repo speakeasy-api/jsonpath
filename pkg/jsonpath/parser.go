@@ -108,7 +108,7 @@ func (p *JSONPath) parseSegment() (*segment, error) {
 		return &segment{kind: segmentKindChild, child: child}, nil
 	} else if p.config.PropertyNameEnabled() && currentToken.Token == token.PROPERTY_NAME {
 		p.current++
-		return &segment{kind: segmentKindProperyName}, nil
+		return &segment{kind: segmentKindPropertyName}, nil
 	}
 	return nil, p.parseFailure(&currentToken, "unexpected token when parsing segment")
 }
