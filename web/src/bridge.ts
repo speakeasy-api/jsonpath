@@ -6,7 +6,7 @@ let messageQueue: {
   resolve: Function;
   reject: Function;
   message: any;
-  supercede: boolean;
+  supersede: boolean;
 }[] = [];
 let isProcessing = false;
 
@@ -19,12 +19,12 @@ function processQueue() {
   wasmWorker.postMessage(message);
   wasmWorker.onmessage = (event: MessageEvent<any>) => {
     if (event.data.type.endsWith("Result")) {
-      // Reject all superceded messages before resolving the current message
-      const supercedeMessages = messageQueue.filter((_, index) => {
-        return messageQueue.slice(index + 1).some((later) => later.supercede);
+      // Reject all superseded messages before resolving the current message
+      const supersedeMessages = messageQueue.filter((_, index) => {
+        return messageQueue.slice(index + 1).some((later) => later.supersede);
       });
-      supercedeMessages.forEach((m) => m.reject(new Error("supercedeerror")));
-      messageQueue = messageQueue.filter((m) => !supercedeMessages.includes(m));
+      supersedeMessages.forEach((m) => m.reject(new Error("supersedeerror")));
+      messageQueue = messageQueue.filter((m) => !supersedeMessages.includes(m));
       resolve(event.data.payload);
     } else if (event.data.type.endsWith("Error")) {
       reject(new Error(event.data.error));
@@ -34,9 +34,9 @@ function processQueue() {
   };
 }
 
-function sendMessage(message: any, supercede = false): Promise<any> {
+function sendMessage(message: any, supersede = false): Promise<any> {
   return new Promise((resolve, reject) => {
-    messageQueue.push({ resolve, reject, message, supercede });
+    messageQueue.push({ resolve, reject, message, supersede });
     processQueue();
   });
 }
@@ -121,14 +121,14 @@ export function CalculateOverlay(
   from: string,
   to: string,
   existing: string,
-  supercede = false,
+  supersede = false,
 ): Promise<any> {
   return sendMessage(
     {
       type: "CalculateOverlay",
       payload: { from, to, existing },
     } satisfies CalculateOverlayMessage["Request"],
-    supercede,
+    supersede,
   );
 }
 
@@ -159,14 +159,14 @@ type ApplyOverlaySuccess =
 export async function ApplyOverlay(
   source: string,
   overlay: string,
-  supercede = false,
+  supersede = false,
 ): Promise<ApplyOverlaySuccess> {
   const result = await sendMessage(
     {
       type: "ApplyOverlay",
       payload: { source, overlay },
     } satisfies ApplyOverlayMessage["Request"],
-    supercede,
+    supersede,
   );
   return JSON.parse(result);
 }
@@ -174,23 +174,23 @@ export async function ApplyOverlay(
 export function QueryJSONPath(
   source: string,
   jsonpath: string,
-  supercede = false,
+  supersede = false,
 ): Promise<string> {
   return sendMessage(
     {
       type: "QueryJSONPath",
       payload: { source, jsonpath },
     } satisfies QueryJSONPathMessage["Request"],
-    supercede,
+    supersede,
   );
 }
 
-export function GetInfo(openapi: string, supercede = false): Promise<string> {
+export function GetInfo(openapi: string, supersede = false): Promise<string> {
   return sendMessage(
     {
       type: "GetInfo",
       payload: { openapi },
     } satisfies GetInfoMessage["Request"],
-    supercede,
+    supersede,
   );
 }
