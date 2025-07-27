@@ -1,10 +1,11 @@
 package jsonpath_test
 
 import (
+	"testing"
+
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestParser(t *testing.T) {

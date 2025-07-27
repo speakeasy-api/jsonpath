@@ -3,10 +3,11 @@ package jsonpath
 import (
 	"errors"
 	"fmt"
-	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
-	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/token"
 	"strconv"
 	"strings"
+
+	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
+	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/token"
 )
 
 const MaxSafeFloat int64 = 9007199254740991

@@ -2,8 +2,9 @@ package token
 
 import (
 	"fmt"
-	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
 	"testing"
+
+	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
 )
 
 func TestTokenizer(t *testing.T) {

@@ -2,11 +2,12 @@ package jsonpath
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"reflect"
 	"regexp"
 	"strconv"
 	"unicode/utf8"
+
+	"gopkg.in/yaml.v3"
 )
 
 func (l literal) Equals(value literal) bool {

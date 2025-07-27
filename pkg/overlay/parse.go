@@ -2,10 +2,11 @@ package overlay
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"io"
 	"os"
 	"path/filepath"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Parse will parse the given reader as an overlay file.
