@@ -399,7 +399,8 @@ function Playground() {
                   .
                 </p>
                 <p className="text-sm text-muted-foreground pt-2">
-                  (Upload an OpenAPI spec and track edits as an overlay or write an overlay directly)
+                  (Upload an OpenAPI spec and track edits as an overlay or write
+                  an overlay directly)
                 </p>
               </div>
             </div>
@@ -411,7 +412,7 @@ function Playground() {
                       Made by the team at
                       <div className="sr-only ml-2">Speakeasy</div>
                       <img
-                        className="inline-block h-3 w-auto align-baseline ml-2"
+                        className="inline-block h-5 w-auto  ml-2"
                         src={speakeasyWhiteLogo}
                         alt=""
                       />
