@@ -5,7 +5,7 @@ import (
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 	"os"
 	"slices"
 	"strings"
