@@ -2,11 +2,12 @@ package overlay_test
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.yaml.in/yaml/v4"
 )
 
 // NodeMatchesFile is a test that marshals the YAML file from the given node,
@@ -29,10 +30,10 @@ func NodeMatchesFile(
 	require.NoError(t, err, variadoc("failed to read expected file: ")...)
 
 	// lazy redo snapshot
-	//os.WriteFile(expectedFile, actualBuf.Bytes(), 0644)
+	// os.WriteFile(expectedFile, actualBuf.Bytes(), 0644)
 
-	//t.Log("### EXPECT START ###\n" + string(expectedBytes) + "\n### EXPECT END ###\n")
-	//t.Log("### ACTUAL START ###\n" + actualBuf.string() + "\n### ACTUAL END ###\n")
+	// t.Log("### EXPECT START ###\n" + string(expectedBytes) + "\n### EXPECT END ###\n")
+	// t.Log("### ACTUAL START ###\n" + actualBuf.string() + "\n### ACTUAL END ###\n")
 
 	assert.Equal(t, string(expectedBytes), actualBuf.String(), variadoc("node does not match expected file: ")...)
 }

@@ -2,11 +2,12 @@ package jsonpath
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"reflect"
 	"regexp"
 	"strconv"
 	"unicode/utf8"
+
+	"go.yaml.in/yaml/v4"
 )
 
 func (l literal) Equals(value literal) bool {
@@ -266,7 +267,6 @@ func (q relQuery) Evaluate(idx index, node *yaml.Node, root *yaml.Node) literal 
 		return nodeToLiteral(result[0])
 	}
 	return literal{}
-
 }
 
 func (q absQuery) Evaluate(idx index, node *yaml.Node, root *yaml.Node) literal {

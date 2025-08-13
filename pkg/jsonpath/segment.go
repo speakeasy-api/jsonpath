@@ -1,8 +1,9 @@
 package jsonpath
 
 import (
-	"gopkg.in/yaml.v3"
 	"strings"
+
+	"go.yaml.in/yaml/v4"
 )
 
 type segmentKind int

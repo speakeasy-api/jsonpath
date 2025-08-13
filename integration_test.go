@@ -2,14 +2,15 @@ package jsonpath_test
 
 import (
 	"encoding/json"
-	"github.com/pmezard/go-difflib/difflib"
-	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
-	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
 	"os"
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/pmezard/go-difflib/difflib"
+	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
+	"github.com/stretchr/testify/require"
+	"go.yaml.in/yaml/v4"
 )
 
 type FullTestSuite struct {
@@ -93,7 +94,7 @@ func TestJSONPathComplianceTestSuite(t *testing.T) {
 
 				// Test case with multiple possible results
 				var found bool
-				for i, _ := range test.Results {
+				for i := range test.Results {
 					if match, msg := compareResults(result, expectedResults[i]); match {
 						found = true
 						break

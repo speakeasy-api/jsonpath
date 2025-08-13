@@ -1,7 +1,7 @@
 package jsonpath
 
 import (
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 type Evaluator interface {
@@ -60,7 +60,7 @@ func (s segment) Query(idx index, value *yaml.Node, root *yaml.Node) []*yaml.Nod
 		return s.child.Query(idx, value, root)
 	case segmentKindDescendant:
 		// run the inner segment against this node
-		var result = []*yaml.Node{}
+		result := []*yaml.Node{}
 		children := descend(value, root)
 		for _, child := range children {
 			result = append(result, s.descendant.Query(idx, child, root)...)
@@ -142,7 +142,6 @@ func (s innerSegment) Query(idx index, value *yaml.Node, root *yaml.Node) []*yam
 	}
 
 	return result
-
 }
 
 func (s selector) Query(idx index, value *yaml.Node, root *yaml.Node) []*yaml.Node {

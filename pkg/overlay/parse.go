@@ -2,10 +2,11 @@ package overlay
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"io"
 	"os"
 	"path/filepath"
+
+	"go.yaml.in/yaml/v4"
 )
 
 // Parse will parse the given reader as an overlay file.
@@ -47,7 +48,7 @@ func Format(path string) error {
 		return err
 	}
 
-	return os.WriteFile(filePath, []byte(formatted), 0644)
+	return os.WriteFile(filePath, []byte(formatted), 0o644)
 }
 
 // Format writes the file back out as YAML.
