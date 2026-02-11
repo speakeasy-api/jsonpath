@@ -816,7 +816,7 @@ components:
             in: header
 `;
 
-export const blankOverlay = `overlay: 1.0.0
+export const blankOverlay = `overlay: 1.1.0
 x-speakeasy-jsonpath: rfc9535
 info:
     title: example overlay
@@ -825,7 +825,7 @@ actions:
   - target: $.info.description
     update: Hello World`;
 
-export const emptyOverlay = `overlay: 1.0.0
+export const emptyOverlay = `overlay: 1.1.0
 x-speakeasy-jsonpath: rfc9535
 info:
     title: example overlay
