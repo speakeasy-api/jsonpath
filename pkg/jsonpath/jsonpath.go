@@ -12,7 +12,7 @@ func NewPath(input string, opts ...config.Option) (*JSONPath, error) {
 	tokens := tokenizer.Tokenize()
 	for i := 0; i < len(tokens); i++ {
 		if tokens[i].Token == token.ILLEGAL {
-			return nil, fmt.Errorf(tokenizer.ErrorString(&tokens[i], "unexpected token"))
+			return nil, fmt.Errorf("%s", tokenizer.ErrorString(&tokens[i], "unexpected token"))
 		}
 	}
 	parser := newParserPrivate(tokenizer, tokens, opts...)
