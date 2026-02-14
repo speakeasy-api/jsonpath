@@ -821,9 +821,17 @@ x-speakeasy-jsonpath: rfc9535
 info:
     title: example overlay
     version: 0.0.0
-actions: 
+actions:
   - target: $.info.description
-    update: Hello World`;
+    description: Update the API description
+    update: Hello World
+  - target: $.components.schemas
+    description: Create an empty schema to copy into
+    update:
+      PetSummary: {}
+  - target: $.components.schemas.PetSummary
+    description: Copy the Pet schema into PetSummary
+    copy: $.components.schemas.Pet`;
 
 export const emptyOverlay = `overlay: 1.1.0
 x-speakeasy-jsonpath: rfc9535
