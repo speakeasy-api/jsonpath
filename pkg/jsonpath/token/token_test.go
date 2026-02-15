@@ -610,12 +610,12 @@ func TestTokenizer_categorize(t *testing.T) {
 				if token.Token == ILLEGAL {
 					foundIllegal = true
 					if !tc.illegal {
-						t.Errorf(tokenizer.ErrorString(&token, "Illegal Token"))
+						t.Errorf("%s", tokenizer.ErrorString(&token, "Illegal Token"))
 					}
 				}
 			}
 			if tc.illegal && !foundIllegal {
-				t.Errorf(tokenizer.ErrorTokenString(&tokenizedJsonPath[0], "Expected an illegal token"))
+				t.Errorf("%s", tokenizer.ErrorTokenString(&tokenizedJsonPath[0], "Expected an illegal token"))
 			}
 
 			if tc.simple && foundIllegal {
@@ -632,12 +632,12 @@ func TestTokenizer_categorize(t *testing.T) {
 						}
 					}
 					if !simple {
-						t.Errorf(tokenizer.ErrorString(&token, "Expected a simple path, but found a non-simple token"))
+						t.Errorf("%s", tokenizer.ErrorString(&token, "Expected a simple path, but found a non-simple token"))
 					}
 				}
 			}
 			if !tc.simple && tokenizedJsonPath.IsSimple() {
-				t.Errorf(tokenizer.ErrorTokenString(&tokenizedJsonPath[0], "Expected a non-simple path, but found it was simple"))
+				t.Errorf("%s", tokenizer.ErrorTokenString(&tokenizedJsonPath[0], "Expected a non-simple path, but found it was simple"))
 			}
 		})
 	}

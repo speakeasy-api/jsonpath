@@ -4,7 +4,7 @@ go 1.24.3
 
 require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
-	github.com/speakeasy-api/openapi v1.16.2
+	github.com/speakeasy-api/openapi v1.18.1
 	github.com/stretchr/testify v1.11.1
 	gopkg.in/yaml.v3 v3.0.1
 )

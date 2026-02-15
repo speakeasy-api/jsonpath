@@ -10,7 +10,6 @@ import (
 
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
-	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/token"
 	"github.com/speakeasy-api/openapi/overlay"
 	"gopkg.in/yaml.v3"
 )
@@ -34,7 +33,6 @@ func CalculateOverlay(originalYAML, targetYAML, existingOverlay string) (string,
 	if err != nil {
 		return "", fmt.Errorf("failed to parse overlay schema in CalculateOverlay: %w", err)
 	}
-	existingOverlayDocument.JSONPathVersion = "rfc9535" // force this in the playground.
 	// now modify the original using the existing overlay
 	err = existingOverlayDocument.ApplyTo(&orig)
 	if err != nil {
@@ -46,8 +44,16 @@ func CalculateOverlay(originalYAML, targetYAML, existingOverlay string) (string,
 		return "", fmt.Errorf("failed to compare schemas: %w", err)
 	}
 	// special case, is there only one action and it targets the same as the last overlayDocument.Actions item entry, we'll just replace it.
-	if len(newOverlay.Actions) == 1 && len(existingOverlayDocument.Actions) > 0 && newOverlay.Actions[0].Target == existingOverlayDocument.Actions[len(existingOverlayDocument.Actions)-1].Target {
-		existingOverlayDocument.Actions[len(existingOverlayDocument.Actions)-1] = newOverlay.Actions[0]
+	lastAction := len(existingOverlayDocument.Actions) - 1
+	if len(newOverlay.Actions) == 1 && lastAction >= 0 && newOverlay.Actions[0].Target == existingOverlayDocument.Actions[lastAction].Target {
+		prev := &existingOverlayDocument.Actions[lastAction]
+		next := &newOverlay.Actions[0]
+		// If both are sequence updates, concatenate content rather than replacing
+		if prev.Update.Kind == yaml.SequenceNode && next.Update.Kind == yaml.SequenceNode {
+			prev.Update.Content = append(prev.Update.Content, next.Update.Content...)
+		} else {
+			existingOverlayDocument.Actions[lastAction] = *next
+		}
 	} else {
 		// Otherwise, we'll just append the new overlay to the existing overlay
 		existingOverlayDocument.Actions = append(existingOverlayDocument.Actions, newOverlay.Actions...)
@@ -115,16 +121,8 @@ func ApplyOverlay(originalYAML, overlayYAML string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to validate overlay schema in ApplyOverlay: %w", err)
 	}
-	hasFilterExpression := false
-	// check to see if we have an overlay with an error, or a partial overlay: i.e. any overlay actions are missing an update or remove
+	// If an action has a valid target but no operation (update, remove, or copy), return query results for the target path (explorer mode).
 	for i, action := range overlay.Actions {
-		tokenized := token.NewTokenizer(action.Target, config.WithPropertyNameExtension()).Tokenize()
-		for _, tok := range tokenized {
-			if tok.Token == token.FILTER {
-				hasFilterExpression = true
-				break
-			}
-		}
 		parsed, pathErr := jsonpath.NewPath(action.Target, config.WithPropertyNameExtension())
 
 		var node *yaml.Node
@@ -136,7 +134,7 @@ func ApplyOverlay(originalYAML, overlayYAML string) (string, error) {
 
 			return applyOverlayJSONPathError(pathErr, node)
 		}
-		if reflect.ValueOf(action.Update).IsZero() && action.Remove == false {
+		if reflect.ValueOf(action.Update).IsZero() && !action.Remove && action.Copy == "" {
 			result := parsed.Query(&orig)
 
 			node, err = lookupOverlayActionTargetNode(overlayYAML, i)
@@ -147,10 +145,6 @@ func ApplyOverlay(originalYAML, overlayYAML string) (string, error) {
 			return applyOverlayJSONPathIncomplete(result, node)
 		}
 	}
-	if hasFilterExpression && overlay.JSONPathVersion != "rfc9535" {
-		return "", fmt.Errorf("invalid overlay schema: must have `x-speakeasy-jsonpath: rfc9535`")
-	}
-
 	err = overlay.ApplyTo(&orig)
 	if err != nil {
 		return "", fmt.Errorf("failed to apply overlay: %w", err)
