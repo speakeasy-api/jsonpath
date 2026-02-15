@@ -44,8 +44,16 @@ func CalculateOverlay(originalYAML, targetYAML, existingOverlay string) (string,
 		return "", fmt.Errorf("failed to compare schemas: %w", err)
 	}
 	// special case, is there only one action and it targets the same as the last overlayDocument.Actions item entry, we'll just replace it.
-	if len(newOverlay.Actions) == 1 && len(existingOverlayDocument.Actions) > 0 && newOverlay.Actions[0].Target == existingOverlayDocument.Actions[len(existingOverlayDocument.Actions)-1].Target {
-		existingOverlayDocument.Actions[len(existingOverlayDocument.Actions)-1] = newOverlay.Actions[0]
+	lastAction := len(existingOverlayDocument.Actions) - 1
+	if len(newOverlay.Actions) == 1 && lastAction >= 0 && newOverlay.Actions[0].Target == existingOverlayDocument.Actions[lastAction].Target {
+		prev := &existingOverlayDocument.Actions[lastAction]
+		next := &newOverlay.Actions[0]
+		// If both are sequence updates, concatenate content rather than replacing
+		if prev.Update.Kind == yaml.SequenceNode && next.Update.Kind == yaml.SequenceNode {
+			prev.Update.Content = append(prev.Update.Content, next.Update.Content...)
+		} else {
+			existingOverlayDocument.Actions[lastAction] = *next
+		}
 	} else {
 		// Otherwise, we'll just append the new overlay to the existing overlay
 		existingOverlayDocument.Actions = append(existingOverlayDocument.Actions, newOverlay.Actions...)
