@@ -1,0 +1,34 @@
+cmd/wasm/functions.go
+  h_9630b74bdac540 14
+go.mod
+  h_9630b74bdac540 9,17
+go.sum
+  h_9630b74bdac540 40-41
+integration_test.go
+  h_9630b74bdac540 9-13
+pkg/jsonpath/filter.go
+  h_9630b74bdac540 6-7
+pkg/jsonpath/jsonpath.go
+  h_9630b74bdac540 5,8
+pkg/jsonpath/segment.go
+  h_9630b74bdac540 5-6
+pkg/jsonpath/yaml_eval.go
+  h_9630b74bdac540 9-10
+pkg/jsonpath/yaml_eval_test.go
+  h_9630b74bdac540 7
+pkg/jsonpath/yaml_query.go
+  h_9630b74bdac540 4
+pkg/jsonpath/yaml_query_test.go
+  h_9630b74bdac540 7-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "43d52ac89b20d9731526c1f1ef0024d02bc5cc5f",
+  "prompts": {},
+  "humans": {
+    "h_9630b74bdac540": {
+      "author": "Tristan Cartledge <tristan@speakeasyapi.dev>"
+    }
+  }
+}
