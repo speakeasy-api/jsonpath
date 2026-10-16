@@ -1,9 +1,10 @@
 package jsonpath
 
 import (
-	"gopkg.in/yaml.v3"
 	"strconv"
 	"strings"
+
+	"go.yaml.in/yaml/v3"
 )
 
 // filter-selector     = "?" S logical-expr
