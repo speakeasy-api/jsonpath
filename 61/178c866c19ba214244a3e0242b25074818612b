@@ -1,0 +1,16 @@
+go.mod
+  h_9630b74bdac540 3,7-8,13-14
+go.sum
+  h_9630b74bdac540 1-12,15-22,25-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "61178c866c19ba214244a3e0242b25074818612b",
+  "prompts": {},
+  "humans": {
+    "h_9630b74bdac540": {
+      "author": "Tristan Cartledge <tristan@speakeasyapi.dev>"
+    }
+  }
+}
