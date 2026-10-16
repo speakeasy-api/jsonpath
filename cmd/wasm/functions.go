@@ -11,7 +11,7 @@ import (
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
 	"github.com/speakeasy-api/openapi/overlay"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 func CalculateOverlay(originalYAML, targetYAML, existingOverlay string) (string, error) {
