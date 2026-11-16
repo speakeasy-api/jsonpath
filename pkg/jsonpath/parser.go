@@ -555,6 +555,9 @@ func (p *JSONPath) parseTestExpr() (*testExpr, error) {
 }
 
 func (p *JSONPath) parseFunctionExpr() (*functionExpr, error) {
+	if p.tokens[p.current].Token != token.FUNCTION {
+		return nil, p.parseFailure(&p.tokens[p.current], "expected function name")
+	}
 	functionName := p.tokens[p.current].Literal
 	if p.current+1 >= len(p.tokens) || p.tokens[p.current+1].Token != token.PAREN_LEFT {
 		return nil, p.parseFailure(&p.tokens[p.current], "expected '(' after function")

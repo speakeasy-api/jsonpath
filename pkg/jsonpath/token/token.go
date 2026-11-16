@@ -692,42 +692,44 @@ func (t *Tokenizer) scanNumber() {
 
 func (t *Tokenizer) scanLiteral() {
 	start := t.pos
-	for i := start; i < len(t.input); i++ {
-		if !isLiteralChar(t.input[i]) && !isDigit(t.input[i]) {
-			literal := t.input[start:i]
-			switch literal {
-			case "true":
-				t.addToken(TRUE, len(literal), literal)
-			case "false":
-				t.addToken(FALSE, len(literal), literal)
-			case "null":
-				t.addToken(NULL, len(literal), literal)
-			default:
-				if isFunctionName(literal) {
-					t.addToken(FUNCTION, len(literal), literal)
-					t.illegalWhitespace = true
-				} else {
-					t.addToken(STRING, len(literal), literal)
-				}
-			}
-			t.pos = i - 1
-			t.column += i - start - 1
-			return
-		}
+	end := start
+	for end < len(t.input) && (isLiteralChar(t.input[end]) || isDigit(t.input[end])) {
+		end++
 	}
-	literal := t.input[start:]
-	switch literal {
-	case "true":
+	literal := t.input[start:end]
+
+	switch {
+	case t.followsMemberNameShorthand():
+		// RFC 9535 member-name-shorthand: a name directly after `.` or `..` is
+		// always a member name, even if it matches a keyword or function name
+		// (e.g. `$.value[0]`, `$.true`, `$..length`).
+		t.addToken(STRING, len(literal), literal)
+	case literal == "true":
 		t.addToken(TRUE, len(literal), literal)
-	case "false":
+	case literal == "false":
 		t.addToken(FALSE, len(literal), literal)
-	case "null":
+	case literal == "null":
 		t.addToken(NULL, len(literal), literal)
+	case isFunctionName(literal) && end < len(t.input) && t.input[end] == '(':
+		// RFC 9535 function-expr: function-name "(" with no whitespace between.
+		t.addToken(FUNCTION, len(literal), literal)
+		t.illegalWhitespace = true
 	default:
 		t.addToken(STRING, len(literal), literal)
 	}
-	t.pos = len(t.input) - 1
-	t.column = len(t.input) - 1
+
+	t.pos = end - 1
+	t.column += end - start - 1
+}
+
+// followsMemberNameShorthand reports whether the literal being scanned
+// immediately follows a child (`.`) or descendant (`..`) token.
+func (t *Tokenizer) followsMemberNameShorthand() bool {
+	if len(t.tokens) == 0 {
+		return false
+	}
+	prev := t.tokens[len(t.tokens)-1]
+	return prev.Token == CHILD || prev.Token == RECURSIVE
 }
 
 func isFunctionName(literal string) bool {
