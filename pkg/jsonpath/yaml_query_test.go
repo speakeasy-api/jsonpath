@@ -93,6 +93,38 @@ store:
 `,
 			expected: []string{"Book 1"},
 		},
+		{
+			name:  "Function name as member name followed by index",
+			input: "$.value[0].id",
+			yaml: `
+value:
+  - id: a
+  - id: b
+`,
+			expected: []string{"a"},
+		},
+		{
+			name:  "Function name as member name in filter",
+			input: "$.items[?(@.length > 1)].id",
+			yaml: `
+items:
+  - id: a
+    length: 1
+  - id: b
+    length: 2
+`,
+			expected: []string{"b"},
+		},
+		{
+			name:  "Keywords as member names",
+			input: "$.true.false.null",
+			yaml: `
+true:
+  false:
+    null: found
+`,
+			expected: []string{"found"},
+		},
 	}
 
 	for _, test := range tests {

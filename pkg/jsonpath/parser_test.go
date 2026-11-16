@@ -76,6 +76,51 @@ func TestParser(t *testing.T) {
 			input:   "$.paths[?(true]",
 			invalid: true,
 		},
+		{
+			name:  "Function name as member name followed by index",
+			input: "$.value[0]",
+		},
+		{
+			name:  "Function name as member name followed by wildcard",
+			input: "$.value[*]",
+		},
+		{
+			name:  "Function name as member name followed by filter",
+			input: "$.value[?(@.id == 'x')]",
+		},
+		{
+			name:  "Function name as member name followed by dot child",
+			input: "$.length.count.match.search",
+		},
+		{
+			name:  "Function name as descendant member name",
+			input: "$..value[0]",
+		},
+		{
+			name:  "Function name as member name in filter query",
+			input: "$[?(@.value[0] == 1)]",
+		},
+		{
+			name:  "Keyword as member name",
+			input: "$.true",
+		},
+		{
+			name:  "Keywords as member names followed by segments",
+			input: "$.true[0].false.null",
+		},
+		{
+			name:  "Keyword as member name in filter query",
+			input: "$[?(@.null == null)]",
+		},
+		{
+			name:  "Value function call",
+			input: "$[?(value(@.a) == 1)]",
+		},
+		{
+			name:    "Invalid whitespace between function name and parenthesis",
+			input:   "$[?(length (@.a) > 1)]",
+			invalid: true,
+		},
 	}
 
 	for _, test := range tests {
